@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Claude Code Trail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a1a;--bg2:#0f0f23;--green:#00ff41;--amber:#ffb000;--purple:#7c3aed;
+  --rose:#f43f5e;--cyan:#00ffff;--text:#c8d6e5;--dim:#4a5568;--dim2:#2d3748;
+  --pixel:'Press Start 2P',monospace;--term:'VT323',monospace;
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+html{background:var(--bg);color:var(--text);font-family:var(--term);overflow:hidden;height:100%}
+body{height:100%;overflow:hidden;position:relative}
+
+/* CRT scanlines */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px)}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
+  background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.4) 100%)}
+
+/* ── Title Screen ── */
+#title-screen{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .8s ease-out}
+#title-screen.hidden{opacity:0;pointer-events:none}
+#title-screen h1{font-family:var(--pixel);font-size:clamp(12px,3vw,26px);color:var(--green);text-shadow:0 0 20px rgba(0,255,65,.5);text-align:center;line-height:2.2}
+.subtitle{font-size:28px;color:var(--amber);margin-top:4px}
+.stats-line{color:var(--dim);font-size:20px}
+.prompt-btn{color:var(--green);font-size:20px;animation:blink 1.2s step-end infinite;margin-top:24px;cursor:pointer;background:none;border:none;font-family:var(--term)}
+@keyframes blink{50%{opacity:0}}
+.title-ascii{color:var(--dim2);font-size:14px;white-space:pre;line-height:1.2;font-family:monospace}
+
+/* ── App Layout ── */
+#app{display:none;height:100%;flex-direction:column}
+#app.active{display:flex}
+
+/* Top bar */
+#topbar{background:var(--bg2);border-bottom:2px solid var(--green);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px}
+#topbar .trail-name{font-family:var(--pixel);font-size:9px;color:var(--green);text-shadow:0 0 8px rgba(0,255,65,.4);white-space:nowrap}
+#topbar .mile{font-size:20px;color:var(--amber);white-space:nowrap}
+#topbar .chapter-name{font-size:18px;color:var(--purple);text-align:center;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Trail map */
+#trail-map{background:var(--bg);border-bottom:1px solid #1a1a2e;padding:10px 0;flex-shrink:0;overflow:hidden;position:relative;height:40px}
+#trail-map .track{display:flex;align-items:center;gap:0;padding:0 24px;transition:transform .4s ease-out;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim2);flex-shrink:0;cursor:pointer;transition:all .15s ease-out}
+.dot.v{background:var(--green);box-shadow:0 0 4px rgba(0,255,65,.4)}
+.dot.a{background:var(--amber);box-shadow:0 0 10px rgba(255,176,0,.7);transform:scale(1.8)}
+.dot.ch{width:10px;height:10px;background:var(--purple);border-radius:2px}
+.dot.ch.v{box-shadow:0 0 6px rgba(124,58,237,.5)}
+.seg{width:6px;height:2px;background:var(--dim2);flex-shrink:0}
+.seg.v{background:var(--green)}
+#wagon{position:absolute;top:0;font-size:16px;transition:left .4s ease-out;pointer-events:none;filter:drop-shadow(0 0 4px rgba(255,176,0,.5))}
+
+/* Content area */
+#content{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:20px 16px;gap:0}
+
+/* Card */
+.card{max-width:760px;width:100%;background:var(--bg2);border:1px solid rgba(0,255,65,.3);border-radius:4px;
+  box-shadow:0 0 15px rgba(0,255,65,.06);transition:opacity .25s ease-out,transform .25s ease-out;overflow:hidden}
+.card.entering{opacity:0;transform:translateX(30px)}
+.card-header{background:linear-gradient(90deg,rgba(0,255,65,.08),transparent);padding:12px 16px;border-bottom:1px solid rgba(0,255,65,.15);display:flex;align-items:center;gap:12px}
+.card-number{font-family:var(--pixel);font-size:8px;color:var(--amber);min-width:55px}
+.card-chapter{font-size:15px;color:var(--purple);text-transform:uppercase;letter-spacing:2px}
+.card-body{padding:18px}
+.card-title{font-family:var(--pixel);font-size:clamp(9px,1.6vw,12px);color:var(--green);line-height:2;margin-bottom:10px;text-shadow:0 0 8px rgba(0,255,65,.25)}
+.card-text{font-size:22px;color:var(--text);line-height:1.7}
+.card-learn{font-size:18px;color:var(--cyan);line-height:1.6;margin-top:14px;padding:12px;background:rgba(0,255,255,.04);border:1px solid rgba(0,255,255,.15);border-radius:3px}
+.card-learn strong{color:var(--amber)}
+.card-footer{padding:10px 16px;border-top:1px solid rgba(0,255,65,.1);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.card-file{font-size:15px;color:var(--dim);font-family:monospace;cursor:default}
+.card-file:hover{color:var(--green)}
+.card-value{display:inline-block;font-size:14px;padding:2px 8px;background:rgba(255,176,0,.1);border:1px solid rgba(255,176,0,.3);color:var(--amber);border-radius:2px;font-family:var(--pixel);font-size:8px}
+.card-tag{display:inline-block;font-size:13px;padding:2px 8px;border:1px solid var(--purple);color:var(--purple);border-radius:2px}
+
+/* Controls */
+#controls{background:var(--bg2);border-top:2px solid var(--green);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.nav-hint{font-size:17px;color:var(--dim)}
+.nav-hint kbd{font-family:var(--pixel);font-size:7px;color:var(--green);border:1px solid var(--green);padding:2px 5px;border-radius:2px;margin:0 1px}
+.progress-text{font-size:18px;color:var(--amber)}
+
+/* Chapter interstitial */
+#interstitial{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .4s ease-out}
+#interstitial.show{opacity:1;pointer-events:auto}
+.ch-num{font-family:var(--pixel);font-size:10px;color:var(--purple);text-shadow:0 0 12px rgba(124,58,237,.4);letter-spacing:3px}
+.ch-title{font-family:var(--pixel);font-size:clamp(11px,2.2vw,18px);color:var(--green);text-shadow:0 0 16px rgba(0,255,65,.3);margin-top:14px;text-align:center;line-height:2.2}
+.ch-desc{font-size:22px;color:var(--dim);margin-top:14px;max-width:480px;text-align:center;line-height:1.5}
+.ch-count{font-size:18px;color:var(--amber);margin-top:10px}
+.ch-prompt{color:var(--green);font-size:17px;margin-top:28px;animation:blink 1.2s step-end infinite}
+
+/* Search overlay */
+#search-overlay{position:fixed;inset:0;z-index:80;background:rgba(10,10,26,.95);display:none;flex-direction:column;align-items:center;padding-top:60px}
+#search-overlay.show{display:flex}
+#search-box{font-family:var(--term);font-size:26px;background:var(--bg2);border:2px solid var(--green);color:var(--green);
+  padding:10px 14px;width:min(620px,92vw);outline:none;border-radius:4px}
+#search-box::placeholder{color:var(--dim)}
+#search-box:focus{box-shadow:0 0 12px rgba(0,255,65,.2)}
+#search-results{width:min(620px,92vw);max-height:65vh;overflow-y:auto;margin-top:8px}
+.sh{padding:8px 12px;cursor:pointer;border-bottom:1px solid #1a1a2e;transition:background .12s;display:flex;align-items:baseline;gap:8px}
+.sh:hover{background:rgba(0,255,65,.07)}
+.sh-n{color:var(--amber);font-size:15px;min-width:35px}
+.sh-t{color:var(--green);font-size:19px;flex:1}
+.sh-c{color:var(--purple);font-size:14px;white-space:nowrap}
+
+/* Chapter nav */
+#chapter-nav{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:40;display:none;flex-direction:column;gap:4px;padding:8px}
+#chapter-nav.show{display:flex}
+.cn-dot{width:28px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;transition:background .15s;position:relative}
+.cn-dot:hover{background:rgba(124,58,237,.15)}
+.cn-dot .cn-bar{width:14px;height:3px;background:var(--dim2);border-radius:1px;transition:all .15s}
+.cn-dot.active .cn-bar{background:var(--purple);width:20px}
+.cn-dot .cn-tip{position:absolute;left:32px;background:var(--bg2);border:1px solid var(--purple);color:var(--text);font-size:15px;padding:4px 8px;border-radius:3px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s}
+.cn-dot:hover .cn-tip{opacity:1}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--dim2);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+
+@media(max-width:640px){
+  .card-body{padding:12px}.card-text{font-size:19px}.card-learn{font-size:16px}
+  #chapter-nav{display:none!important}.nav-hint{font-size:14px}
+}
+</style>
+</head>
+<body>
+
+<!-- Title Screen -->
+<div id="title-screen">
+  <div class="title-ascii">
+    _____|~\_____
+  =  |    o o    |
+     |  \_____/  |
+     |___________|
+   ___|___|___|___
+  </div>
+  <h1>THE CLAUDE CODE TRAIL</h1>
+  <div class="subtitle">An Educational Journey Through 512,664 Lines of TypeScript</div>
+  <div class="stats-line">1,884 files &middot; 86 commands &middot; 42 tools &middot; 18 companion species</div>
+  <div class="stats-line" style="color:var(--cyan)">Each insight links to the source code. Learn how a production CLI is built.</div>
+  <button class="prompt-btn" onclick="startTrail()" tabindex="0">&gt; Press ENTER or click to embark _</button>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <div id="topbar">
+    <span class="trail-name">THE CLAUDE CODE TRAIL</span>
+    <span class="chapter-name" id="topbar-chapter"></span>
+    <span class="mile" id="topbar-mile"></span>
+  </div>
+  <div id="trail-map"><div class="track" id="track"></div><div id="wagon">&#x1F404;</div></div>
+  <div id="content"><div class="card" id="card"></div></div>
+  <div id="controls">
+    <span class="nav-hint"><kbd>&larr;</kbd><kbd>&rarr;</kbd> move <kbd>/</kbd> search <kbd>C</kbd> chapters <kbd>G</kbd> jump</span>
+    <span class="progress-text" id="progress"></span>
+  </div>
+</div>
+
+<!-- Chapter Interstitial -->
+<div id="interstitial">
+  <div class="ch-num" id="inter-num"></div>
+  <div class="ch-title" id="inter-title"></div>
+  <div class="ch-desc" id="inter-desc"></div>
+  <div class="ch-count" id="inter-count"></div>
+  <div class="ch-prompt">&gt; Press any key to continue _</div>
+</div>
+
+<!-- Search -->
+<div id="search-overlay">
+  <input type="text" id="search-box" placeholder="Search insights..." autocomplete="off">
+  <div id="search-results"></div>
+</div>
+
+<!-- Chapter Nav -->
+<div id="chapter-nav"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════════
+
+const CH = [
+  {id:"genesis",title:"Genesis: The Shape of a Giant",desc:"A half-million-line CLI arrives in a single commit. Understand the architecture."},
+  {id:"terminal",title:"The Terminal Frontier",desc:"A custom React renderer reborn for the command line — flexbox, double-buffering, and mouse tracking."},
+  {id:"tools",title:"Tools of the Trade",desc:"42 specialized tools, each with carefully tuned limits, timeouts, and security boundaries."},
+  {id:"bash",title:"The Bash Gauntlet",desc:"How every shell command is parsed, classified, sandboxed, and permission-gated."},
+  {id:"commands",title:"The Command Saloon",desc:"86 slash commands — from /vim to /stickers. Each one a mini-app with its own personality."},
+  {id:"companions",title:"Trail Companions",desc:"Procedurally generated ASCII pets with rarity tiers, stats, and souls."},
+  {id:"vim",title:"The Vim Outpost",desc:"A complete vim state machine — modes, registers, text objects — inside a chat CLI."},
+  {id:"voice",title:"Voice in the Wilderness",desc:"Recording, silence detection, and three audio backends for talking to your AI."},
+  {id:"memory",title:"Memory Lane",desc:"How an AI dreams, remembers, and builds persistent knowledge across sessions."},
+  {id:"agents",title:"The Swarm Frontier",desc:"Multi-agent orchestration via tmux panes with color-coded teammates."},
+  {id:"security",title:"Fort Security",desc:"Sandboxing, permissions, denial tracking, and the multi-layer trust model."},
+  {id:"rendering",title:"Pixels & Scanlines",desc:"Unicode bidi, CJK cells, hyperlink pools — terminal rendering at its deepest."},
+  {id:"models",title:"The Model Stables",desc:"Token budgets, pricing tiers, effort levels, and context window management."},
+  {id:"services",title:"The Service Depot",desc:"Background services: tips, plugins, analytics, LSP, and auto-compaction."},
+  {id:"infra",title:"Infrastructure Trail",desc:"Bridges, transports, cloud runtimes, and remote session management."},
+  {id:"components",title:"Component Frontier",desc:"200+ React components rendered in terminal cells — diffs, dialogs, and design systems."},
+  {id:"whimsy",title:"Whimsy & Wonder",desc:"Easter eggs, poetic session names, and the small delights hidden in a production codebase."},
+];
+
+// f = source file reference, l = "learn more" educational note
+const I = [
+  // ═══ CH 0: Genesis ═══
+  {ch:0,t:"Half a Million Lines of TypeScript",d:"The entire codebase is 512,664 lines across 1,884 files. This is larger than many web frameworks.",f:"src/",l:"<strong>Why it matters:</strong> Most CLI tools are a few thousand lines. This is a full application platform — comparable in scale to VS Code's core editor."},
+  {ch:0,t:"The Single Init Commit",d:"The entire 512K-line codebase arrived in one commit: 1becaba, message 'init'. One push. One moment.",f:"git log --oneline",l:"<strong>Pattern:</strong> Open-sourcing internal projects often starts with a squashed history commit to avoid leaking internal context."},
+  {ch:0,t:"99.1% TypeScript Purity",d:"Of 1,902 source files, 1,884 are .ts or .tsx. Only 18 other files exist in the entire src/ directory.",f:"src/",l:"<strong>Lesson:</strong> Committing fully to one language simplifies tooling, builds, and hiring. The 1% is likely generated code or assets."},
+  {ch:0,t:"42 Specialized Tools",d:"Not a single 'execute' function — 42 distinct tool classes, each with its own prompt, constants, and permission handler.",f:"src/tools/",l:"<strong>Architecture:</strong> Each tool is a self-contained module with implementation, prompt definition, and permission handling. This separation of concerns makes the system extensible."},
+  {ch:0,t:"86 Slash Commands",d:"From /vim to /stickers to /thinkback. Each command directory is essentially a mini-app with its own UI and logic.",f:"src/commands/",l:"<strong>Design:</strong> Commands use a plugin-like architecture where each registers metadata (aliases, visibility, enablement) and a handler. This pattern scales to hundreds of commands without a central routing file."},
+  {ch:0,t:"20 Major Service Modules",d:"Analytics, MCP, plugins, OAuth, LSP, session memory, team sync, compaction, tips, and 11 more — each a background concern.",f:"src/services/",l:"<strong>Pattern:</strong> Services run independently of the command/tool layer. They're initialized once and provide capabilities to the entire system — a service-oriented architecture inside a CLI."},
+  {ch:0,t:"GrowthBook Feature Flags Everywhere",d:"Feature gates use a '_CACHED_MAY_BE_STALE' suffix pattern, returning immediately from cache to never block the main thread on remote config fetches.",f:"src/services/analytics/",l:"<strong>Trade-off:</strong> Stale feature flags mean a user might see a slightly outdated state, but the UI never freezes waiting for a network call. Freshness vs responsiveness — responsiveness wins in a CLI."},
+  {ch:0,t:"Zero Config in src/",d:"No package.json, tsconfig, or build scripts inside src/. Pure source code only, built by external tooling.",f:"src/",l:"<strong>Philosophy:</strong> Keeping build configuration separate from source keeps the codebase focused. The build system wraps src/ without polluting it."},
+  {ch:0,t:"Coordinator Mode: Hidden Multi-Agent",d:"Setting CLAUDE_CODE_COORDINATOR_MODE unlocks multi-agent orchestration with worker spawning, task management, and cross-agent scratchpads.",f:"src/coordinator/",l:"<strong>Architecture:</strong> The coordinator pattern transforms a single-user CLI into a multi-agent system. Workers get a limited tool subset — they can't spawn more workers, preventing recursive agent bombs."},
+  {ch:0,t:"The Forked Agent Pattern",d:"Memory extraction, magic docs, and session memory all use runForkedAgent() — isolated compute that shares the parent's prompt cache.",f:"src/services/extractMemories/",l:"<strong>Key insight:</strong> Forking reuses the parent's cached prompt tokens (which can be 100K+), avoiding re-reading the entire conversation. This makes background agents nearly free in terms of input cost."},
+  {ch:0,t:"Cost Tracker Persists Across Sessions",d:"lastCost (USD), lastAPIDuration (ms), lastLinesAdded/Removed, and lastSessionId are persisted to project config for cross-session restoration.",f:"src/utils/",l:"<strong>UX detail:</strong> When you resume a session, the cost counter picks up where it left off. No lost accounting."},
+
+  // ═══ CH 1: Terminal Frontier ═══
+  {ch:1,t:"Custom Yoga Layout Engine in WASM",d:"Terminal layout uses Facebook's Yoga (flexbox) compiled to WASM. Flex-direction, align-items, justify-content — all work in your terminal.",f:"src/ink/layout/yoga.ts",l:"<strong>Why Yoga:</strong> The same layout engine React Native uses. By compiling it to WASM, the terminal gets pixel-perfect flexbox without reimplementing the spec. justify-content: center works in a 80x24 terminal."},
+  {ch:1,t:"Double-Buffered Rendering",d:"Front and back screen buffers are swapped each frame. Diffing between them produces minimal terminal writes for flicker-free output.",f:"src/ink/frame.ts",l:"<strong>GPU technique in a terminal:</strong> This is exactly how video games render — draw to a back buffer, then swap. The diff step means only changed cells get written, critical for SSH connections with latency."},
+  {ch:1,t:"Screen Cell Pooling",d:"Character pools, hyperlink pools, and style pools recycle objects across frames. Zero GC pressure during fast redraws.",f:"src/ink/output.ts",l:"<strong>Performance:</strong> In a 200-column × 50-row terminal, that's 10,000 cells per frame. Allocating and GC-ing those every 16ms would cause jank. Pooling eliminates this entirely."},
+  {ch:1,t:"Mouse Tracking in a CLI",d:"Full mouse event handling — click, drag, scroll — through terminal escape sequences. Hit-testing maps coordinates to components.",f:"src/ink/hit-test.ts",l:"<strong>How:</strong> Terminals can report mouse events via SGR mouse mode (CSI < button;x;y M). The hit-test system walks the component tree to find what was clicked, just like a browser's event dispatch."},
+  {ch:1,t:"15 Built-in Design System Components",d:"Dialog, FuzzyPicker, ProgressBar, Tabs, Pane, ThemedBox, KeyboardShortcutHint, Byline — a complete component library for terminal UIs.",f:"src/components/design-system/",l:"<strong>Reusability:</strong> By building a design system, every new feature gets consistent styling for free. The FuzzyPicker alone handles search, selection, and keyboard navigation."},
+  {ch:1,t:"Kitty Keyboard Protocol",d:"Supports the Kitty keyboard protocol for disambiguating Ctrl+I from Tab, Ctrl+M from Enter — impossible with standard VT100 encoding.",f:"src/ink/parse-keypress.ts",l:"<strong>The problem:</strong> In traditional terminals, Ctrl+I sends the same byte as Tab (0x09). The Kitty protocol encodes modifier state separately, enabling vim-style keybindings that would otherwise collide."},
+  {ch:1,t:"Alt-Screen Takeover",d:"Full-screen alternate screen mode lets features like /thinkback take over the entire terminal, then cleanly restore the previous view.",f:"src/ink/components/AlternateScreen.tsx",l:"<strong>How:</strong> CSI ?1049h saves the current screen and switches to a blank alternate buffer. CSI ?1049l restores. This is how vim, less, and htop work."},
+  {ch:1,t:"Terminal Capability Detection",d:"Detects VSCode, Cursor, Windsurf, iTerm2, tmux, screen, SSH — and adjusts rendering for each terminal's quirks.",f:"src/ink/terminal.ts",l:"<strong>Why:</strong> iTerm2 supports inline images; VSCode terminal doesn't. tmux needs escape sequences wrapped in DCS passthrough. Each terminal is a different browser with different CSS support."},
+  {ch:1,t:"Frame-Based Architecture",d:"The renderer thinks in frames, not events. Each frame: compute layout, diff against previous, write only changed cells.",f:"src/ink/renderer.ts",l:"<strong>Why frames:</strong> Event-driven rendering can batch poorly — 10 state changes could trigger 10 redraws. Frame-based rendering batches everything into one coherent update, like requestAnimationFrame in browsers."},
+  {ch:1,t:"Focus Management System",d:"A React-style focus context tracks which component is active, with tab-order traversal and visible focus-ring rendering.",f:"src/ink/focus.ts",l:"<strong>Accessibility:</strong> Even in a terminal, focus management matters. Tab navigates between interactive elements, and the focused element gets a visible indicator — same principles as web ARIA."},
+  {ch:1,t:"Pure TypeScript Yoga Port",d:"The Yoga layout engine is a pure TypeScript port supporting flex-grow/shrink, margin:auto, multi-pass clamping, flex-wrap, and baseline alignment.",f:"src/native-ts/yoga-layout/",l:"<strong>Why port:</strong> Native WASM Yoga has startup cost and memory overhead. A pure TS port trades some performance for instant startup and easier debugging."},
+
+  // ═══ CH 2: Tools ═══
+  {ch:2,t:"50-Subcommand Security Cutoff",d:"Bash commands with >50 subcommands bypass security analysis entirely to prevent ReDoS attacks. Falls back to 'ask user' mode.",f:"src/tools/BashTool/",l:"<strong>Defense-in-depth:</strong> Regex-based security scanning on adversarial input can cause catastrophic backtracking. Capping at 50 subcommands is a pragmatic circuit-breaker — unlikely to hit in normal use, prevents DoS."},
+  {ch:2,t:"2-Minute Default, 10-Minute Max",d:"Every bash command gets 120s timeout. Maximum allowed: 600s. Configurable via BASH_DEFAULT_TIMEOUT_MS and BASH_MAX_TIMEOUT_MS.",f:"src/tools/BashTool/",l:"<strong>Why 2 minutes:</strong> Most commands finish in seconds. A stuck command (waiting for input, infinite loop) shouldn't freeze the session. 10 minutes covers builds and test suites."},
+  {ch:2,t:"1 GiB File Edit Limit",d:"FileEditTool caps at 1,073,741,824 bytes to prevent V8 string length overflow. Multi-byte UTF-8 files hit this limit first.",f:"src/tools/FileEditTool/",l:"<strong>V8 limit:</strong> JavaScript strings are UTF-16 internally. V8's max string length is ~512MB of UTF-16 chars. A 1GiB UTF-8 file could be ~500M chars, right at the edge."},
+  {ch:2,t:"25,000 Token Output Cap",d:"FileReadTool limits output to 25,000 tokens by default. A 256KB file size threshold triggers truncation with guidance to use offset/limit.",f:"src/tools/FileReadTool/",l:"<strong>Context management:</strong> Reading a 10,000-line file would consume the entire context window. The 25K cap forces the AI to read surgically — specific line ranges, not entire files."},
+  {ch:2,t:"250-Line Grep Default",d:"GrepTool returns max 250 result lines when head_limit isn't specified. Enough to explore, not enough to flood the context.",f:"src/tools/GrepTool/",l:"<strong>Design choice:</strong> Unlimited grep results would fill the context window with repetitive matches. 250 lines is about 3-4 screens of results — enough for pattern discovery."},
+  {ch:2,t:"15-Minute Web Cache with 50MB Ceiling",d:"WebFetchTool caches URLs for 15 minutes at up to 50MB total. Domain blocklist checks use a shorter 5-minute TTL.",f:"src/tools/WebFetchTool/",l:"<strong>Two cache layers:</strong> Content cache (15min) avoids re-downloading docs. Domain cache (5min) avoids re-checking if a domain is blocked. Different TTLs for different concerns."},
+  {ch:2,t:"100K Character Markdown Limit",d:"Fetched web pages are converted to markdown and truncated at 100,000 characters. The original page might be megabytes.",f:"src/tools/WebFetchTool/",l:"<strong>Token math:</strong> 100K chars ≈ 25K tokens. This ensures a web fetch never consumes more than ~12% of a 200K context window."},
+  {ch:2,t:"117 Preapproved Domains",d:"docs.python.org, react.dev, go.dev, pytorch.org, huggingface.co — 117 domains that skip the 'allow this URL?' prompt.",f:"src/tools/WebFetchTool/",l:"<strong>UX optimization:</strong> Developers constantly look up docs. Prompting for every MDN or PyTorch fetch would be maddening. The whitelist is documentation-heavy by design."},
+  {ch:2,t:"Max 8 Web Searches Per Turn",d:"WebSearchTool has a hardcoded max_uses: 8. No exceptions. Prevents runaway search loops.",f:"src/tools/WebSearchTool/",l:"<strong>Cost control:</strong> Each web search has a real cost (~$0.01). Capping at 8 prevents an agent from burning through searches in a research spiral."},
+  {ch:2,t:"10 Redirect Limit",d:"WebFetchTool follows max 10 redirects per request, matching Chrome/axios defaults. Prevents infinite redirect loops.",f:"src/tools/WebFetchTool/",l:"<strong>Security:</strong> A malicious URL could redirect infinitely, resetting timeouts each hop. Capping at 10 is the industry standard (RFC 2616 doesn't specify a number, but browsers settled on ~10-20)."},
+  {ch:2,t:"Progress Indicator After 2 Seconds",d:"BashTool shows a progress spinner only after 2000ms of execution. Quick commands stay visually clean.",f:"src/tools/BashTool/",l:"<strong>Perceived performance:</strong> Showing a spinner for a 50ms command creates visual noise. The 2-second threshold means spinners only appear when the user would actually start wondering 'is it stuck?'"},
+  {ch:2,t:"14 Silent Commands",d:"mv, cp, rm, mkdir, touch, ln and 8 others show 'Done' instead of '(No output)' when they produce no stdout.",f:"src/tools/BashTool/",l:"<strong>UX detail:</strong> '(No output)' sounds like an error. 'Done' is reassuring. This tiny string swap is the difference between confusion and confidence."},
+  {ch:2,t:"64MB Persisted Output Limit",d:"Shell tool results are persisted to disk up to 64MB for session recovery. Larger outputs are truncated.",f:"src/tools/BashTool/",l:"<strong>Persistence trade-off:</strong> Saving all output enables session resume, but a runaway log could fill disk. 64MB is generous for debugging but bounded."},
+  {ch:2,t:"Auto-Background at 120 Seconds",d:"Agent tasks auto-background after 120 seconds when enabled, freeing the foreground for user interaction.",f:"src/tools/AgentTool/",l:"<strong>Autonomy pattern:</strong> Long-running sub-agents shouldn't block the main conversation. Auto-backgrounding is like putting a long build in a background tab."},
+  {ch:2,t:"30MB Upload, 500KB Team Memory",d:"BriefTool caps uploads at 30MB. Team memory sync is stricter: 500KB per file to keep shared knowledge lean.",f:"src/tools/BriefTool/",l:"<strong>Two limits, two purposes:</strong> Individual uploads can be generous. But team-shared memory multiplies across every team member, so tight limits prevent bloat."},
+  {ch:2,t:"20MB Image In, 5MB API Limit",d:"Images in bash output can be 20MB, but the API requires base64 encoding which expands ~33%, so the effective raw limit is ~3.75MB.",f:"src/tools/BashTool/",l:"<strong>Base64 math:</strong> Base64 encoding expands data by 4/3. A 5MB base64 string decodes to ~3.75MB raw. The 20MB local limit accounts for the encoding overhead."},
+  {ch:2,t:"MCP Tool Output: 25K Tokens Default",d:"Model Context Protocol tool results are capped at 25,000 tokens. Images are estimated at 1,600 tokens each.",f:"src/services/mcp/",l:"<strong>Token budgeting:</strong> MCP tools can return anything — database queries, API responses, images. Without caps, one tool could consume the entire context."},
+
+  // ═══ CH 3: Bash Gauntlet ═══
+  {ch:3,t:"Tree-Sitter Bash Parsing",d:"Over 20 validators plus tree-sitter AST parsing run per subcommand. Memoization prevents event loop starvation on compound commands.",f:"src/utils/bash/",l:"<strong>Why tree-sitter:</strong> Regex can't reliably parse bash (nested quotes, heredocs, process substitution). Tree-sitter produces a real AST, enabling precise security analysis of what a command actually does."},
+  {ch:3,t:"Semantic Exit Code Analysis",d:"grep exit 2+ = error (1 = no matches). find exit 1 = partial success. diff exit 1 = differences found. Each command has its own semantics.",f:"src/utils/bash/specs/",l:"<strong>The problem:</strong> A naive 'exit code != 0 means failure' would flag grep finding no matches as an error. Per-command exit code knowledge prevents false alarms."},
+  {ch:3,t:"Safe Wrapper Stripping",d:"timeout, nice, stdbuf, env, time, nohup, and env var assignments are stripped before matching sandbox rules. The real command is underneath.",f:"src/utils/bash/",l:"<strong>Bypass prevention:</strong> Without stripping, 'timeout 5 rm -rf /' would bypass a rule blocking 'rm'. Stripping ensures the sandbox sees the actual dangerous command."},
+  {ch:3,t:"5-Rule Suggestion Limit",d:"Compound commands get max 5 permission rule suggestions. More would overwhelm the user's approval dialog.",f:"src/utils/bash/",l:"<strong>UX constraint:</strong> A pipeline of 10 commands could theoretically suggest 10 rules. But 5 is the cognitive limit for a quick scan-and-approve interaction."},
+  {ch:3,t:"Command Display Categories",d:"Commands are classified as: search (find, grep, rg), read (cat, head, jq), list (ls, tree, du), or semantic-neutral (echo, true).",f:"src/tools/BashTool/",l:"<strong>Why classify:</strong> The UI shows different icons and behaviors for different command types. A search command gets a 'searching...' spinner. A read command gets a file icon."},
+  {ch:3,t:"Semantic-Neutral Operators",d:"&&, ||, |, ; are skipped during pipeline analysis. Only actual commands affect the security classification.",f:"src/utils/bash/",l:"<strong>Precision:</strong> 'echo hello && rm file' should be classified by 'rm', not 'echo'. The operators are structural, not semantic."},
+  {ch:3,t:"Pyright Output Parser",d:"A dedicated bash spec for pyright type-checker output. Error counts, file locations, and severity levels are parsed into structured data.",f:"src/utils/bash/specs/pyright.ts",l:"<strong>First-class tooling:</strong> Instead of treating type-checker output as raw text, parsing it enables rich error display with file links and severity badges."},
+  {ch:3,t:"Slurm Job Runner Spec",d:"The bash specs include srun for submitting jobs to Slurm HPC clusters. Claude Code works on supercomputers.",f:"src/utils/bash/specs/srun.ts",l:"<strong>Audience signal:</strong> Including Slurm support means the team knows their users run Claude Code on research clusters with GPU queues and batch schedulers."},
+  {ch:3,t:"ENV Variable Safe List",d:"SAFE_ENV_VARS and ANT_ONLY_SAFE_ENV_VARS are whitelisted before extracting command names from environment variable assignments.",f:"src/utils/bash/",l:"<strong>Security boundary:</strong> 'SECRET_KEY=x command' could leak env vars. The safe list ensures only known-benign variables are allowed without prompting."},
+
+  // ═══ CH 4: Commands ═══
+  {ch:4,t:"/stickers Opens a Merch Store",d:"Opens stickermule.com/claudecode in your browser. Merchandise, sold from a command-line interface.",f:"src/commands/stickers/stickers.ts:5",l:"<strong>Brand in the CLI:</strong> Most dev tools have a website with a merch link. Putting it in the CLI itself is a playful touch that signals the team doesn't take themselves too seriously."},
+  {ch:4,t:"/good-claude Is Disabled and Hidden",d:"The command exists but isEnabled returns false and isHidden is true. Its purpose remains a mystery in the external build.",f:"src/commands/good-claude/",l:"<strong>Ghost code:</strong> This is likely an internal reward/feedback mechanism. The code ships but is gated, suggesting it's used by Anthropic employees only."},
+  {ch:4,t:"/thinkback: Year in Review",d:"Generates an animated terminal visualization of your Claude Code sessions — a full retrospective rendered in alt-screen mode.",f:"src/commands/thinkback/",l:"<strong>Implementation:</strong> Downloads a thinkback plugin from the marketplace, extracts session data, runs a Node animation player, and opens an HTML export. Like Spotify Wrapped, but for coding."},
+  {ch:4,t:"/vim Toggles Full Vim Emulation",d:"Not just keybindings — a complete state machine with INSERT/NORMAL modes, registers, dot-repeat, and text objects.",f:"src/commands/vim/vim.ts",l:"<strong>Backward compat:</strong> The old 'emacs' mode setting is silently treated as 'normal' mode. Mode changes are tracked via analytics (tengu_editor_mode_changed event)."},
+  {ch:4,t:"/voice: Talk to Claude",d:"Toggles voice input with mic permission probing, SoX recording, and silence detection. Requires Anthropic OAuth specifically.",f:"src/commands/voice/",l:"<strong>Three checks:</strong> 1) GrowthBook kill switch active? 2) User has OAuth (not API key)? 3) Microphone hardware available? All three must pass before voice activates."},
+  {ch:4,t:"/heapdump: V8 Memory Snapshot",d:"Dumps a V8 heap snapshot to ~/Desktop for debugging memory leaks. Hidden command, available in non-interactive mode.",f:"src/commands/heapdump/",l:"<strong>Production debugging:</strong> V8 heap snapshots can be loaded in Chrome DevTools to inspect every object in memory. Essential for finding leaks in long-running sessions."},
+  {ch:4,t:"/teleport: Cloud Code Runtime",d:"Connects to remote CCR sessions with exponential backoff retry (2s, 4s, 8s, 16s) and JWT + org UUID authentication.",f:"src/commands/teleport/",l:"<strong>Retry strategy:</strong> Exponential backoff with a cap prevents hammering a struggling server while still recovering quickly from blips. Auth failures exit immediately — no point retrying a bad token."},
+  {ch:4,t:"/rewind: Conversation Time Travel",d:"Aliased as /checkpoint. Lets you step backward through conversation history and restore the code and conversation to a previous point.",f:"src/commands/rewind/",l:"<strong>Git for conversations:</strong> This is essentially 'git checkout' for your chat. Combined with the ability to restore file state, it's a full undo system."},
+  {ch:4,t:"/color Has 5 Reset Aliases",d:"'default', 'reset', 'none', 'gray', 'grey' — five ways to say 'go back to normal'. Uses 'default' sentinel, not empty string.",f:"src/commands/color/color.ts:18",l:"<strong>Detail:</strong> An empty string is falsy in JS, which would break persistence guards. The string 'default' is truthy, so it survives if/else checks while still meaning 'no custom color'."},
+  {ch:4,t:"/desktop Only Works on macOS and Windows",d:"The desktop app upsell command checks for darwin or win32+x64. Linux users don't get the pitch.",f:"src/commands/desktop/",l:"<strong>Platform targeting:</strong> The desktop app (Electron) only ships for macOS and Windows. No point marketing to Linux users who can't install it."},
+  {ch:4,t:"/effort Controls Reasoning Depth",d:"Four levels: 'low' (quick), 'medium' (balanced), 'high' (comprehensive), 'max' (deepest, Opus 4.6 only).",f:"src/commands/effort/effort.ts:13-18",l:"<strong>'max' restriction:</strong> Only Opus 4.6 supports 'max' effort per the API docs. Other models return an error. Unknown first-party models default to allowing it; third-party requires explicit opt-in."},
+  {ch:4,t:"/mobile Has /ios and /android Aliases",d:"One command, two aliases. iOS app ID: 6473753684. Android package: com.anthropic.claude.",f:"src/commands/mobile/",l:"<strong>Deep links:</strong> The command opens the correct app store URL for each platform. Mobile deep-linking from a CLI is an unusual but practical cross-platform bridge."},
+  {ch:4,t:"/rename Generates Kebab-Case Names",d:"Asks Claude to generate session names like 'fix-login-bug' or 'refactor-api-client'. Teammates can't rename — only the team lead can.",f:"src/commands/rename/",l:"<strong>Constraint:</strong> In multi-agent mode, only the coordinator can rename sessions. This prevents naming conflicts when multiple agents are running."},
+  {ch:4,t:"/btw: Quick Side Questions",d:"Drop an aside into the conversation without interrupting the main flow. Marked with immediate: true for instant execution.",f:"src/commands/btw/",l:"<strong>UX pattern:</strong> Sometimes you need to ask 'btw, what's the Node version?' without derailing a complex task. /btw creates a lightweight query that doesn't affect conversation state."},
+  {ch:4,t:"/sandbox-toggle Shows Dynamic Status",d:"The description is computed at runtime: warning icon if deps missing, tick/circle for enabled/disabled, plus auto-allow and fallback status.",f:"src/commands/sandbox-toggle/",l:"<strong>Living help text:</strong> Most command descriptions are static strings. This one reads system state to give you the current sandbox status right in the help menu."},
+  {ch:4,t:"/tag Is Anthropic-Internal Only",d:"Enabled only when USER_TYPE === 'ant'. A searchable tag system where running the same tag again removes it (toggle behavior).",f:"src/commands/tag/",l:"<strong>Internal tooling:</strong> Anthropic employees can tag sessions for categorization. Tags appear in /resume and are searchable with /, making session management more organized."},
+  {ch:4,t:"/feedback Disabled for Internal Users",d:"The /feedback (alias /bug) command is disabled when USER_TYPE is 'ant' or when using Bedrock/Vertex/Foundry providers.",f:"src/commands/feedback/",l:"<strong>Routing:</strong> Internal users presumably have internal bug-tracking systems. External users on non-Anthropic API providers have their own support channels."},
+  {ch:4,t:"/release-notes Has a 500ms Timeout",d:"Fetches fresh release notes with a 500ms timeout. If the network is slow, falls back to cached notes instantly.",f:"src/commands/release-notes/",l:"<strong>Fast fallback:</strong> 500ms is aggressive. Most users won't notice a half-second delay, but if the CDN is slow, you get cached content immediately rather than waiting."},
+  {ch:4,t:"/compact: Manual Context Compression",d:"Manually triggers conversation compaction to reclaim context window space. Can be disabled with DISABLE_COMPACT env var.",f:"src/commands/compact/",l:"<strong>When to use:</strong> If you've been chatting for a while and want to 'start fresh' without losing context, /compact summarizes the conversation so far and frees up token budget."},
+  {ch:4,t:"/ctx_viz: See What the Model Sees",d:"Visualizes the current context window — a map of what tokens are being sent to the model on each turn.",f:"src/commands/ctx_viz/",l:"<strong>Debugging tool:</strong> When the AI seems to 'forget' something, ctx_viz shows whether it was actually in the context or got compacted away. Essential for understanding AI behavior."},
+  {ch:4,t:"/mock-limits: Fake Rate Limiting",d:"Simulates rate limiting for testing. Engineers testing their own safety nets from the inside.",f:"src/commands/mock-limits/",l:"<strong>Testing resilience:</strong> You can't test rate-limit handling without hitting rate limits. This command lets developers verify the UX without actually burning through quota."},
+  {ch:4,t:"/chrome: Browser Bridge",d:"Connects Claude Code to Chrome for browser-aware interactions. Settings disabled in non-interactive sessions.",f:"src/commands/chrome/",l:"<strong>Cross-boundary:</strong> A CLI tool talking to a browser is unusual. This enables workflows where Claude Code can interact with web pages or inspect browser state."},
+  {ch:4,t:"/session Shows QR Code",d:"Aliased as /remote, shows the remote session URL and a QR code. Only enabled in remote mode.",f:"src/commands/session/",l:"<strong>Mobile handoff:</strong> Scan the QR code to open the session on your phone. A terminal CLI generating QR codes for mobile access is peak cross-platform."},
+  {ch:4,t:"/branch Has a Conditional Alias",d:"The 'fork' alias is only added when the FORK_SUBAGENT feature flag is disabled. When enabled, 'fork' means something different.",f:"src/commands/branch/",l:"<strong>Feature flag collision:</strong> The same word ('fork') means different things in different contexts. Conditional aliasing prevents the collision."},
+
+  // ═══ CH 5: Companions ═══
+  {ch:5,t:"18 Species of ASCII Pet",d:"Duck, cat, dragon, robot, axolotl, capybara, ghost, goose, mushroom, octopus, owl, penguin, rabbit, snail, turtle, blob, cactus, chonk.",f:"src/buddy/sprites.ts",l:"<strong>Why 18:</strong> Enough variety that seeing someone else's companion is a surprise. Each has 3 hand-drawn animation frames at 5×12 characters."},
+  {ch:5,t:"Deterministic Generation from User ID",d:"SHA-256(userId + 'friend-2026-401') seeds a Mulberry32 PRNG. Same user always gets the same companion. No database needed.",f:"src/buddy/",l:"<strong>Mulberry32:</strong> A fast 32-bit PRNG with good statistical properties. The seed string includes a version number ('2026-401') so the team can re-roll everyone's companion in a future update."},
+  {ch:5,t:"Five Rarity Tiers",d:"Common (60%), Uncommon (25%), Rare (10%), Epic (4%), Legendary (1%). Rarity gates hat eligibility and stat floors.",f:"src/buddy/",l:"<strong>Weighted distribution:</strong> The 60/25/10/4/1 split ensures most users get Common (building community), while Legendary is rare enough to be exciting. Classic gacha math."},
+  {ch:5,t:"1% Chance of Shiny",d:"Independent of rarity, each companion has a 1% shiny chance. A shiny Legendary is 0.01% — about 1 in 10,000 users.",f:"src/buddy/",l:"<strong>Multiplicative rarity:</strong> Shiny is a separate roll (rng() < 0.01), not tied to the rarity tier. This creates emergent ultra-rare combinations without adding complexity."},
+  {ch:5,t:"Five Soul Stats: DEBUGGING to SNARK",d:"DEBUGGING, PATIENCE, CHAOS, WISDOM, SNARK. One peak stat (guaranteed 100), one dump stat (can be 1). Classic RPG min-maxing.",f:"src/buddy/",l:"<strong>Personality through numbers:</strong> A companion with 100 CHAOS and 1 PATIENCE tells a story. Stats make companions feel unique even when they're the same species."},
+  {ch:5,t:"Rarity Floor Stats",d:"Common floor: 5. Uncommon: 15. Rare: 25. Epic: 35. Legendary: 50. Higher rarity means no bad stats.",f:"src/buddy/",l:"<strong>Feels fair:</strong> A Legendary companion won't have a stat below 50. Combined with the guaranteed peak at 100, Legendaries feel powerful without being perfectly balanced."},
+  {ch:5,t:"8 Hat Types, Commons Go Hatless",d:"8 hat styles exist, but only non-Common rarities get hats. 60% of users have a hatless companion.",f:"src/buddy/sprites.ts",l:"<strong>Visual rarity signal:</strong> Hats are the instant visual cue that a companion is special. You can tell rarity at a glance without checking stats."},
+  {ch:5,t:"6 Eye Styles",d:"Eyes: · ✦ × ◉ @ ° — randomly distributed from the PRNG stream. Combined with species and hat, this creates thousands of visual combinations.",f:"src/buddy/sprites.ts",l:"<strong>Combinatorics:</strong> 18 species × 6 eyes × 9 hat states (8 + none) × 5 rarity = 4,860 visual combinations. Plus shiny. Plus stats."},
+  {ch:5,t:"Idle Fidget: 3 Frames of Animation",d:"Each species has 3 frames (5 lines × 12 chars). The duck's frame 2 adds a single '~' to the tail for a waggle effect.",f:"src/buddy/sprites.ts:28-48",l:"<strong>Minimalist animation:</strong> One character changes between frames. That's all it takes for a duck to feel alive in ASCII. Animation is about rhythm, not complexity."},
+  {ch:5,t:"Species Names Are Hex-Encoded",d:"String constants stored as charCodeAt hex to avoid matching excluded-strings.txt — one species name collides with a model codename.",f:"src/buddy/types.ts",l:"<strong>Build system quirk:</strong> The build process strips certain strings (model codenames). A species name accidentally matched, so they encode species as hex to bypass the filter. Creative workaround."},
+  {ch:5,t:"Companions Have Souls",d:"First 'hatch' generates a name and personality via AI, stored persistently. Bones (appearance) are deterministic; souls are creative.",f:"src/buddy/",l:"<strong>Two-layer generation:</strong> Appearance is instant (hash-based). Personality requires an AI call (expensive, one-time). Separating them means your companion appears immediately while its soul generates in the background."},
+  {ch:5,t:"Memoized Roll Function",d:"roll() is memoized to avoid recomputing SHA-256 on every 500ms sprite tick and per-keystroke input render.",f:"src/buddy/",l:"<strong>Performance:</strong> SHA-256 is fast but not free. At 2 calls/second for sprites + 30 calls/second for keystrokes, memoization saves thousands of hash computations per minute."},
+
+  // ═══ CH 6: Vim ═══
+  {ch:6,t:"Full State Machine with Exhaustive Types",d:"TypeScript's exhaustive type checking ensures every state transition is handled. It's impossible to reach an unknown vim state at runtime.",f:"src/vim/transitions.ts",l:"<strong>Type-driven correctness:</strong> A switch statement with a 'never' default case causes a compile error if a new state is added without a handler. The type system prevents bugs before tests can catch them."},
+  {ch:6,t:"Pure Functional Motions",d:"All motion functions are pure — no side effects, idempotent, composable with count multipliers. w(3, pos) moves 3 words forward.",f:"src/vim/motions.ts",l:"<strong>Testability:</strong> Pure functions are trivially testable: input → output, no setup needed. This makes the vim implementation reliable despite its complexity."},
+  {ch:6,t:"13 Delimiter Pairs for Text Objects",d:"Parens, brackets, braces, angle brackets, single/double/backtick quotes — inner (i) and outer (a) scope for each.",f:"src/vim/textObjects.ts",l:"<strong>Coverage:</strong> ci\" (change inside quotes), da( (delete around parens), vi` (select inside backticks) — all 13 × 2 combinations work. That's 26 text object commands."},
+  {ch:6,t:"Dot-Repeat Records Every Keystroke",d:"INSERT mode records every character typed so the . command can replay the exact edit. 'ciw hello ESC' followed by . replaces the next word with 'hello'.",f:"src/vim/transitions.ts",l:"<strong>Macro recording lite:</strong> Dot-repeat is vim's killer feature. Recording keystrokes in INSERT mode and replaying them makes repetitive edits effortless."},
+  {ch:6,t:"Quote Pairing Algorithm",d:"Quotes are paired positionally: 0-1, 2-3, 4-5 on each line. This correctly finds the enclosing quote in multi-quoted lines.",f:"src/vim/textObjects.ts",l:"<strong>The hard problem:</strong> In 'foo \"bar\" baz \"qux\"', which quotes enclose the cursor? Positional pairing (first pair is chars 0-1, second is 2-3) solves this without a full parser."},
+  {ch:6,t:"Linewise vs Characterwise Operations",d:"jk and G are linewise (include whole lines). w and f are characterwise (precise character ranges). dd auto-detects.",f:"src/vim/operators.ts",l:"<strong>Why it matters:</strong> Deleting a line (dd) should remove the newline. Deleting a word (dw) should not. The operation mode determines newline handling."},
+  {ch:6,t:"Register Content Tags",d:"Yanked text is tagged as linewise or characterwise. p (paste) checks the tag to decide whether to paste on a new line or inline.",f:"src/vim/types.ts",l:"<strong>Vim semantics:</strong> 'yy' (yank line) followed by 'p' pastes below. 'yw' (yank word) followed by 'p' pastes after the cursor. Same key, different behavior based on how the text was copied."},
+  {ch:6,t:"Grapheme-Aware Word Motion",d:"Word boundaries use Unicode grapheme segmentation. Emoji and CJK characters are first-class citizens in cursor movement.",f:"src/vim/motions.ts",l:"<strong>Modern vim:</strong> Original vi assumed ASCII. This implementation handles 'w' correctly over '你好世界' (4 motions) and '👨‍👩‍👧‍👦 hello' (2 motions, treating the emoji family as one grapheme)."},
+  {ch:6,t:"Inclusive vs Exclusive Motions",d:"e, E, $ are inclusive (include the character at destination). All other motions are exclusive by default.",f:"src/vim/motions.ts",l:"<strong>Subtle but critical:</strong> 'de' deletes through the end of the word (inclusive). 'dw' deletes up to the start of the next word (exclusive). Getting this wrong would break every vim user's muscle memory."},
+
+  // ═══ CH 7: Voice ═══
+  {ch:7,t:"16kHz Mono 16-bit PCM",d:"Recording parameters: 16kHz sample rate, 1 channel, 16-bit signed integers. Standard telephony quality, optimized for speech recognition.",f:"src/voice/",l:"<strong>Why 16kHz:</strong> Human speech is intelligible at 8kHz (phone quality). 16kHz captures more nuance for better transcription accuracy without the bandwidth of CD-quality 44.1kHz."},
+  {ch:7,t:"2-Second Silence Auto-Stop",d:"SoX monitors audio at a 3% amplitude threshold. Two seconds of silence triggers automatic recording stop.",f:"src/voice/",l:"<strong>Natural interaction:</strong> You speak, pause, and the system knows you're done. No button to press. The 3% threshold ignores ambient noise while catching even quiet speech."},
+  {ch:7,t:"1024-Byte Buffer for Real-Time Streaming",d:"SoX is forced to --buffer 1024 instead of default buffering. This ensures audio data flows in real-time when piped to stdout.",f:"src/voice/",l:"<strong>The problem:</strong> Default SoX buffering accumulates large chunks before writing. With 1024-byte chunks at 16kHz/16bit, that's 32ms of audio per chunk — fast enough for streaming."},
+  {ch:7,t:"macOS Microphone Permission Probe",d:"Triggers the full TCC recording lifecycle to force the OS permission dialog. Does not trust the unreliable TCC status API.",f:"src/voice/",l:"<strong>Apple quirk:</strong> macOS's TCC (Transparency, Consent, Control) API can report stale permission states. The only reliable way to check mic access is to actually try recording."},
+  {ch:7,t:"Three Audio Backends",d:"Primary: native cpal module (1-8s dlopen lag on first use). Fallback: arecord (ALSA) on Linux. Final: SoX rec.",f:"src/voice/",l:"<strong>Graceful degradation:</strong> cpal gives the best quality but needs native libraries. arecord is Linux-only but always available. SoX is cross-platform but requires installation. Each fallback is worse but broader."},
+  {ch:7,t:"150ms Audio Device Probe",d:"Runs a 150ms arecord attempt to detect if an audio device exists. Quick failure means headless Linux or WSL1 without audio.",f:"src/voice/",l:"<strong>Fast fail:</strong> 150ms is long enough for a device to respond, short enough that users don't notice. Failing fast on headless systems prevents a confusing 30-second timeout."},
+  {ch:7,t:"OAuth Required, Not API Keys",d:"Voice mode uses Claude.ai's voice_stream endpoint, which requires OAuth authentication. Raw API keys can't access it.",f:"src/voice/voiceModeEnabled.ts",l:"<strong>Auth boundary:</strong> The voice endpoint is a Claude.ai feature, not an API feature. OAuth proves you're a Claude.ai subscriber; an API key only proves you have API access."},
+  {ch:7,t:"GrowthBook Kill Switch",d:"Feature gate tengu_amber_quartz_disabled can silently disable voice mode remotely. A server-side off switch for a client-side feature.",f:"src/voice/voiceModeEnabled.ts",l:"<strong>Safety valve:</strong> If voice mode causes issues (privacy, cost, bugs), it can be disabled for all users instantly without shipping a new version. The naming convention (tengu_*) groups all feature flags."},
+
+  // ═══ CH 8: Memory ═══
+  {ch:8,t:"Memory Extraction via Forked Agent",d:"At the end of each query loop, a forked agent extracts durable memories. It reuses the parent's prompt cache, making it nearly free.",f:"src/services/extractMemories/",l:"<strong>Cost trick:</strong> The parent conversation is already cached (100K+ tokens). The forked agent inherits this cache, so it only pays for its own small prompt — maybe 1% of the cost of a fresh agent."},
+  {ch:8,t:"Session Memory: Periodic Summaries",d:"A background task periodically summarizes session notes into ~/.claude/projects/<path>/memory/. Survives process restarts.",f:"src/services/SessionMemory/",l:"<strong>Persistence strategy:</strong> Writing to the filesystem (not a database) means memory survives even if the process crashes. The file path includes the project path, so memories are project-scoped."},
+  {ch:8,t:"autoDream: Background Memory Consolidation",d:"Three gates must pass: enough time since last dream, enough sessions accumulated, and a distributed lock to prevent race conditions.",f:"src/services/autoDream/",l:"<strong>Three gates:</strong> Time gate prevents too-frequent dreaming. Session count gate ensures there's enough new content. Lock gate prevents two processes from dreaming simultaneously. Belt, suspenders, and a third belt."},
+  {ch:8,t:"Dream Lock Uses File mtime",d:"The distributed lock is just a file's modification time. If mtime is recent, another process is dreaming. Killing a dream rewinds the mtime.",f:"src/tasks/DreamTask/DreamTask.ts",l:"<strong>No database needed:</strong> File mtime is atomic on most filesystems and survives process crashes. It's the simplest possible distributed lock — no Redis, no ZooKeeper, just stat()."},
+  {ch:8,t:"Dream UI: Footer Pill + Shift+Down",d:"Active dreams appear as a footer pill. Shift+Down opens a dialog showing progress, touched files, and the last 30 conversation turns.",f:"src/tasks/DreamTask/",l:"<strong>Observability:</strong> Background processes should never be invisible. The footer pill says 'dreaming...' and the detail dialog lets curious users watch what the dream agent is doing."},
+  {ch:8,t:"Dream State Machine: 4 States",d:"starting → updating (when file edits occur) → completed/failed/killed. Each transition is explicit and logged.",f:"src/tasks/DreamTask/DreamTask.ts",l:"<strong>State machines prevent bugs:</strong> Without explicit states, you get boolean soup (isDreaming && !isFailed && hasStarted). A state machine makes transitions clear and impossible states unrepresentable."},
+  {ch:8,t:"Magic Docs: Self-Updating Markdown",d:"Files with '# MAGIC DOC: [title]' headers are automatically updated by a background agent after queries. Living documentation.",f:"src/services/MagicDocs/",l:"<strong>Pattern:</strong> detectMagicDocHeader() scans files you touch. After your query completes, a forked agent updates any magic docs with new information. Documentation that maintains itself."},
+  {ch:8,t:"Team Memory Sync",d:"Shared memory files are synchronized across team members. Knowledge one person discovers becomes available to everyone.",f:"src/services/teamMemorySync/",l:"<strong>Collective intelligence:</strong> If one developer maps out an API's quirks, team memory sync means the next developer doesn't rediscover them. The 500KB per-file limit keeps shared knowledge focused."},
+  {ch:8,t:"Memory Manifest Scanning",d:"The auto-memory system scans for manifests and ENTRYPOINT_NAME to build a project-aware memory graph.",f:"src/utils/memory/",l:"<strong>Project context:</strong> By discovering the project's entry point and structure, the memory system can organize knowledge hierarchically — project-level facts vs file-level facts vs session-level facts."},
+  {ch:8,t:"Max 30 Dream Turns Displayed",d:"The dream detail dialog shows at most 30 recent turns with collapsed tool uses. Keeps the UI responsive even for long dreams.",f:"src/tasks/DreamTask/DreamTask.ts",l:"<strong>UI performance:</strong> A dream might process hundreds of turns. Showing all of them would make the dialog unusable. 30 recent turns is enough context without overwhelming the viewport."},
+
+  // ═══ CH 9: Agents/Swarm ═══
+  {ch:9,t:"Tmux Pane Spawning",d:"The swarm system launches Claude instances into tmux panes. Each teammate gets its own pane, color-coded for identification.",f:"src/utils/swarm/",l:"<strong>Why tmux:</strong> tmux provides process isolation, persistent sessions, and visual layout — exactly what multi-agent needs. Each pane is an independent Claude process that can be killed without affecting others."},
+  {ch:9,t:"Exactly 8 Agent Colors",d:"Red, blue, green, yellow, purple, orange, pink, cyan. Color is assigned via CLAUDE_CODE_AGENT_COLOR env var.",f:"src/commands/color/",l:"<strong>Cognitive limit:</strong> 8 colors is the sweet spot — enough to distinguish agents visually, few enough to recognize at a glance. More would be confusing. Fewer would cause collisions."},
+  {ch:9,t:"Socket Isolation per Process",d:"Non-tmux swarm sessions use claude-swarm-{PID} sockets. Your Claude's tmux sessions never collide with your personal tmux.",f:"src/utils/swarm/constants.ts:12-14",l:"<strong>PID isolation:</strong> Including the process ID in the socket name means multiple Claude Code instances can swarm simultaneously without socket conflicts."},
+  {ch:9,t:"Plan Mode Enforcement on Teammates",d:"CLAUDE_CODE_PLAN_MODE_REQUIRED env var forces spawned agents to enter plan mode before writing code. Must get approval first.",f:"src/utils/swarm/constants.ts:30-33",l:"<strong>Guard rail:</strong> Without this, a spawned agent could immediately start modifying files. Plan mode enforcement means a human reviews the plan before any code changes happen."},
+  {ch:9,t:"iTerm2 Split Backend",d:"Not just tmux — the swarm can spawn into iTerm2 splits natively, using iTerm's AppleScript API.",f:"src/utils/swarm/backends/",l:"<strong>Native integration:</strong> iTerm2's split panes are more visually polished than tmux. Supporting both gives users the best experience for their terminal."},
+  {ch:9,t:"Full Environment Propagation",d:"API provider, proxy settings, memory dirs, model overrides, permission modes, and plugin config — all inherited by spawned agents.",f:"src/utils/swarm/",l:"<strong>Correctness:</strong> A teammate that can't reach the API (missing proxy) or uses the wrong model (missing override) is useless. Full env propagation ensures teammates behave identically to the leader."},
+  {ch:9,t:"The Coordinator is Always 'team-lead'",d:"TEAM_LEAD_NAME constant: every swarm has exactly one coordinator named 'team-lead'. Workers cannot promote themselves.",f:"src/utils/swarm/constants.ts:1",l:"<strong>Single leader:</strong> Preventing worker self-promotion avoids the 'too many cooks' problem. Exactly one agent coordinates, others execute."},
+  {ch:9,t:"Cross-Agent Scratchpad",d:"A shared directory enables knowledge transfer between coordinator and workers. Feature-gated behind tengu_scratch.",f:"src/coordinator/",l:"<strong>Shared state:</strong> Without a scratchpad, agents would duplicate work or miss context. The scratchpad is like a shared whiteboard — any agent can write findings for others to read."},
+  {ch:9,t:"In-Process Teammates",d:"InProcessTeammateTask runs agents in the same Node process — no terminal pane needed. Lighter weight for simple delegation.",f:"src/tasks/InProcessTeammateTask/",l:"<strong>Trade-off:</strong> In-process is faster to spawn but shares memory. Out-of-process (tmux) is isolated but heavier. The system supports both for different use cases."},
+  {ch:9,t:"Worker Tool Subset",d:"Workers get a limited tool set — they can't spawn more workers or create teams. Prevents recursive agent spawning.",f:"src/coordinator/",l:"<strong>Recursion guard:</strong> Without this limit, agent A could spawn B, which spawns C, which spawns D... The tool subset ensures the hierarchy is always exactly 2 levels deep."},
+
+  // ═══ CH 10: Security ═══
+  {ch:10,t:"Multi-Layer Permission Model",d:"Default (prompt every time), plan-mode (reviewed), auto-accept, and bypass. Plus tool-specific and MCP-specific approval layers.",f:"src/utils/permissions/",l:"<strong>Defense in depth:</strong> Even in auto-accept mode, certain operations (like --force flags) still prompt. The layers compose — you need permission from ALL applicable layers."},
+  {ch:10,t:"Denial State Tracking",d:"The system remembers which operations you've denied and won't re-ask for the exact same action in the same session.",f:"src/utils/permissions/",l:"<strong>UX respect:</strong> Nothing is more annoying than being asked the same question repeatedly. If you said 'no' to deleting a file, the system remembers and doesn't ask again."},
+  {ch:10,t:"Protected Files: 8 Configs",d:".gitconfig, .bashrc, .zshrc, .zprofile, .profile, .ripgreprc, .mcp.json, .claude.json — auto-edit is blocked for these.",f:"src/utils/permissions/",l:"<strong>Blast radius:</strong> These files affect your entire development environment. An accidental edit to .bashrc could break every new terminal. Protection prevents catastrophic config corruption."},
+  {ch:10,t:"Protected Directories: 4 Sacred Paths",d:".git, .vscode, .idea, .claude — checked case-insensitively on all platforms. No tool can casually modify these.",f:"src/utils/permissions/",l:"<strong>Case-insensitive:</strong> On macOS (case-insensitive by default), .Git and .git are the same directory. Checking case-insensitively prevents bypass on case-insensitive filesystems."},
+  {ch:10,t:"Skill-Scoped Permissions",d:"Skills get narrower permission scope: /.claude/skills/{name}/ only. Session-allow for a skill doesn't grant global access.",f:"src/utils/permissions/",l:"<strong>Least privilege:</strong> A skill that needs to write to its own directory shouldn't get write access everywhere. Scoped permissions prevent skills from accidentally (or maliciously) touching unrelated files."},
+  {ch:10,t:"Analytics Input Truncation",d:"Tool inputs truncated at 512 chars, JSON inputs at 4KB for analytics. Secrets in command arguments never reach telemetry.",f:"src/services/analytics/",l:"<strong>Privacy by design:</strong> A bash command might contain API keys or passwords. Truncating before sending to analytics ensures sensitive data never leaves the machine."},
+  {ch:10,t:"Sandbox Deny-List",d:"Even within allowed bash, a pattern-matching system blocks specific dangerous commands. The sandbox has its own deny-list independent of permissions.",f:"src/utils/sandbox/",l:"<strong>Two layers:</strong> Permissions control whether you CAN run bash. The sandbox controls WHAT bash can do. Even with auto-accept permissions, 'rm -rf /' hits the sandbox deny-list."},
+  {ch:10,t:"Git Diff Safety Limits",d:"MAX_FILES=50, MAX_DIFF_SIZE=1MB, MAX_LINES_PER_FILE=400 (GitHub's auto-load limit), 5-second timeout.",f:"src/utils/git/",l:"<strong>Resource protection:</strong> A huge refactoring commit could have thousands of changed files. Without limits, reading the diff could freeze the UI or exhaust the context window."},
+  {ch:10,t:"500-File Threshold for Git Tracking",d:"If >500 files changed, skip per-file detail tracking to avoid loading hundreds of MB into memory.",f:"src/utils/git/",l:"<strong>Graceful degradation:</strong> A node_modules change could touch 10,000 files. Rather than OOM, the system skips per-file tracking and just reports the aggregate."},
+  {ch:10,t:"Ripgrep 20MB Buffer Limit",d:"Search results are buffered up to 20MB for large monorepos. Stdout/stderr beyond this get truncated flags set.",f:"src/tools/GrepTool/",l:"<strong>Monorepo reality:</strong> Searching a 10GB monorepo can produce megabytes of matches. The 20MB buffer is generous for useful results but prevents memory exhaustion."},
+
+  // ═══ CH 11: Rendering ═══
+  {ch:11,t:"Unicode Bidi Algorithm Implementation",d:"Manually implements the full Unicode Bidi Algorithm for right-to-left text. Windows Terminal and VSCode terminal lack native bidi.",f:"src/ink/bidi.ts",l:"<strong>Inclusivity:</strong> Arabic, Hebrew, and other RTL languages need bidirectional text rendering. Most terminal UIs punt on this. Implementing it means Claude Code works for developers worldwide."},
+  {ch:11,t:"18 Unicode RTL Ranges Checked",d:"Hebrew (U+0590), Arabic (U+0600), Thaana, Syriac, NKo, Samaritan, Mandaic, and 11 more. Only triggers the expensive bidi pass when needed.",f:"src/ink/bidi.ts",l:"<strong>Performance optimization:</strong> Bidi is expensive. Checking for RTL characters first (a fast scan) means Latin-only text never pays the bidi cost. This is the 'fast path' pattern."},
+  {ch:11,t:"Grapheme-Aware Screen Search",d:"Search builds per-row char→cell maps to handle wide characters. A CJK character is 1 match but 2 cells.",f:"src/ink/searchHighlight.ts",l:"<strong>CJK handling:</strong> In a terminal, '中' occupies 2 cells but is 1 character. Without grapheme-aware mapping, search highlighting would be off by one cell for every wide character encountered."},
+  {ch:11,t:"Non-Overlapping Match Advance",d:"Search advances by query length to prevent double-inversion. 'aa' in 'aaa' matches at position 0 only, not 0 and 1.",f:"src/ink/searchHighlight.ts",l:"<strong>Visual correctness:</strong> Overlapping matches would cause the highlight to toggle on-off-on, creating a flickering effect. Non-overlapping advance ensures clean, consistent highlighting."},
+  {ch:11,t:"8 Box Drawing Styles",d:"Eight built-in border styles plus custom dashed. Text can be embedded in borders with start/center/end alignment.",f:"src/ink/render-border.ts",l:"<strong>Terminal art:</strong> Box-drawing characters (─ │ ┌ ┐ └ ┘) create the classic TUI aesthetic. Supporting 8 styles means different UI elements can have different border weights."},
+  {ch:11,t:"CellWidth Enum: SpacerTail and SpacerHead",d:"Multi-cell characters (CJK, some emoji) use SpacerHead for the first cell and SpacerTail for the continuation cell.",f:"src/ink/output.ts",l:"<strong>The phantom cell:</strong> When a 2-cell character is at column 5, column 6 is a SpacerTail — it exists in the buffer but doesn't render independently. Overwriting column 6 must also clear column 5."},
+  {ch:11,t:"noSelect Bitmask",d:"Line numbers and gutters are flagged with noSelect. Terminal text selection skips them — copy only copies content, not chrome.",f:"src/ink/output.ts",l:"<strong>Copy correctness:</strong> When you select text from a diff view, you want the code, not the line numbers. The noSelect flag tells the terminal selection system to skip non-content cells."},
+  {ch:11,t:"Hyperlink Pool Recycling",d:"Terminal hyperlinks (OSC 8 escape sequences) are pooled and recycled across frames to minimize escape sequence overhead.",f:"src/ink/output.ts",l:"<strong>Escape sequence cost:</strong> Each hyperlink wraps text in OSC 8;params;url ST ... OSC 8;; ST. That's ~50 bytes of overhead per link. Pooling avoids re-emitting identical links across frames."},
+  {ch:11,t:"Multiplexer Detection and Passthrough",d:"Detects tmux, screen, and nested multiplexers. Some escape sequences need DCS passthrough wrapping to reach the outer terminal.",f:"src/ink/terminal.ts",l:"<strong>The tmux problem:</strong> tmux intercepts escape sequences. To send a sequence to the real terminal (like setting the window title), you must wrap it in DCS tmux; ... ST. Nested tmux needs double-wrapping."},
+  {ch:11,t:"Native Bun.wrapAnsi Fast Path",d:"When running under Bun, delegates to Bun's native wrapAnsi for ANSI-aware line wrapping. Falls back to npm wrap-ansi for Node.",f:"src/ink/wrapAnsi.ts",l:"<strong>Runtime detection:</strong> Bun's native implementation is significantly faster than the JavaScript package. Detecting the runtime and choosing the fast path is a simple but effective optimization."},
+
+  // ═══ CH 12: Models ═══
+  {ch:12,t:"200K Default Context Window",d:"All current models default to 200,000 tokens. 1M context is opt-in, detected via [1m] suffix or per-model support flags.",f:"src/utils/model/",l:"<strong>Cost trade-off:</strong> 1M context costs 5x more in prompt cache writes. Defaulting to 200K keeps costs manageable for most tasks while allowing opt-in for massive codebases."},
+  {ch:12,t:"8,000 Token Output Cap (Default)",d:"CAPPED_DEFAULT_MAX_TOKENS=8,000 for slot-reservation optimization. P99 responses need less than 1% more. Escalated retry at 64,000.",f:"src/utils/model/",l:"<strong>Slot reservation:</strong> API servers reserve compute capacity based on max_tokens. Requesting 8K instead of 100K means your request gets a smaller, faster slot. If truncated, a retry at 64K handles edge cases."},
+  {ch:12,t:"Model Pricing: $0.80 to $150 per Mtok",d:"Haiku: $0.80/$4 (in/out). Sonnet: $3/$15. Opus: $15/$75. Opus 4.6 fast: $30/$150. A 37x cost range.",f:"src/utils/model/",l:"<strong>Pick your trade-off:</strong> Haiku is 37x cheaper than Opus fast mode. The effort command lets users dynamically choose where they fall on the cost/quality spectrum."},
+  {ch:12,t:"Prompt Cache: Write 1.25x, Read 0.1x",d:"Writing to prompt cache costs 1.25x the input rate. Reading cached tokens costs only 0.1x. Break-even after ~1.2 reads.",f:"src/utils/model/",l:"<strong>Cache math:</strong> Caching 100K tokens costs 125K token-equivalents to write. Each read saves 90K (100K - 10K). After 2 reads, you've saved 55K tokens. The forked agent pattern exploits this aggressively."},
+  {ch:12,t:"Effort Override Chain",d:"env CLAUDE_CODE_EFFORT_LEVEL → appState.effortValue → model default → API default (high). Four levels of override.",f:"src/commands/effort/effort.ts",l:"<strong>Precedence:</strong> Environment variables beat app state. App state beats model defaults. This lets CI/CD pipelines force low effort (fast, cheap) while interactive users get the default."},
+  {ch:12,t:"Opus 4.6 Default Effort: Medium",d:"Pro subscribers get 'medium' effort by default on Opus 4.6. GrowthBook flag tengu_grey_step2 extends this to Max/Team subscribers.",f:"src/commands/effort/effort.ts",l:"<strong>Cost management:</strong> 'High' effort on Opus 4.6 uses extended thinking which costs more. Defaulting to 'medium' balances quality and cost for the majority of queries."},
+  {ch:12,t:"4 API Providers",d:"firstParty (Anthropic API), bedrock (AWS), vertex (Google Cloud), foundry (Anthropic Foundry). Each has different model availability and pricing.",f:"src/utils/model/",l:"<strong>Enterprise flexibility:</strong> Large companies may require all AI traffic to go through their cloud provider (AWS/GCP). Supporting 4 providers means Claude Code works in any enterprise environment."},
+  {ch:12,t:"Thinking Color: 7 Rainbow Colors",d:"Extended thinking output rotates through 7 colors (plus shimmer variants) for visual distinction from regular output.",f:"src/utils/model/",l:"<strong>Visual signal:</strong> When the model is 'thinking', the rainbow colors make it obvious this is internal reasoning, not final output. Users learn to skim rainbow text and focus on the conclusion."},
+  {ch:12,t:"Context Usage: Composite Formula",d:"(input + cache_creation + cache_read) / context_window × 100, clamped 0-100. All three token types count toward the percentage.",f:"src/utils/model/",l:"<strong>Honest accounting:</strong> Cache reads are 'free' cost-wise but still consume context window space. Including them in the percentage gives users an accurate picture of how full their context is."},
+  {ch:12,t:"Web Search Cost: ~$0.01 per Query",d:"Each web search is estimated at roughly 1 cent. Combined with the 8-search cap, max spend per turn is ~$0.08.",f:"src/utils/model/",l:"<strong>Transparent pricing:</strong> Tracking per-search cost and displaying it helps users understand the real cost of 'just Google it' requests."},
+
+  // ═══ CH 13: Services ═══
+  {ch:13,t:"60+ Dynamic Tips with A/B Testing",d:"634+ lines define 60+ tips. Display conditions check startup count, platform, model, IDE, feature gates, and Statsig experiments.",f:"src/services/tips/",l:"<strong>Context-aware help:</strong> A tip about Vim mode only shows after 10+ sessions (experienced user). A tip about the desktop app only shows on supported platforms. Wrong tips at wrong times are noise."},
+  {ch:13,t:"Tip Cooldown: Sessions Since Last Shown",d:"Each tip tracks how many sessions have passed since it was last displayed. Some tips require minimum session counts before first appearance.",f:"src/services/tips/",l:"<strong>Anti-annoyance:</strong> Seeing the same tip every day would make users ignore all tips. Cooldowns create variety and ensure tips feel like discoveries, not ads."},
+  {ch:13,t:"Custom Tips Override",d:"spinnerTipsOverride.tips in settings replaces all built-in tips with your own messages. Complete control over what appears during loading.",f:"src/services/tips/",l:"<strong>Customization:</strong> Teams can replace tips with their own guidelines ('Remember to run tests before committing'). It's an unexpected customization point in a CLI."},
+  {ch:13,t:"Plugin Marketplace with Hot-Reload",d:"A full plugin system: discovery via marketplace, manifest.json loading, security permissions, and live reloading without restart.",f:"src/services/plugins/",l:"<strong>Extensibility:</strong> Plugins can add commands, agents, and hooks. Hot-reload means developers can iterate on plugins without restarting Claude Code. The plugin@marketplace format enables one-line installation."},
+  {ch:13,t:"LSP Integration for Code Intelligence",d:"Language Server Protocol provides type info, completions, and diagnostics from your actual toolchain — not guesses.",f:"src/services/lsp/",l:"<strong>Grounded intelligence:</strong> Instead of the AI guessing types, LSP provides real type information from your TypeScript/Python/Go compiler. This makes code suggestions dramatically more accurate."},
+  {ch:13,t:"Auto-Compaction Near Context Limits",d:"When approaching the context window limit, conversations are automatically summarized and compressed to free space.",f:"src/services/compact/",l:"<strong>Invisible UX:</strong> Without auto-compaction, long conversations would hit a wall. With it, sessions can run indefinitely — the AI 'forgets' details but retains the overall context. Like human memory."},
+  {ch:13,t:"Prompt Suggestion Service",d:"Generates contextual suggestions for what to ask next, based on the current conversation state and project context.",f:"src/services/PromptSuggestion/",l:"<strong>Discoverability:</strong> New users don't know what's possible. Suggestions like 'Want me to run the tests?' or 'Should I commit these changes?' teach capabilities through context."},
+  {ch:13,t:"Agent Summary Service",d:"Generates concise summaries of what each sub-agent accomplished. Essential for understanding multi-agent workflow results.",f:"src/services/AgentSummary/",l:"<strong>Observability:</strong> When 3 agents run in parallel, you need to know what each one did. Summaries are the TL;DR — skip the 500 lines of agent output and read the 3-line summary."},
+  {ch:13,t:"Remote Managed Settings",d:"Organization administrators can push settings to all team members remotely. Central configuration management.",f:"src/services/remoteManagedSettings/",l:"<strong>Enterprise need:</strong> IT teams need to enforce security policies (no auto-accept permissions, specific allowed models). Remote settings make this possible without touching each developer's machine."},
+  {ch:13,t:"13 Bundled Skills",d:"remember, loremIpsum, verify, loop, claudeApi, debug, stuck, scheduleRemoteAgents, batch, updateConfig, keybindings, skillify, simplify.",f:"src/skills/bundled/",l:"<strong>Batteries included:</strong> Skills are higher-level than tools — they combine multiple tool calls into workflows. 'verify' runs your test suite. 'debug' starts a systematic debugging session."},
+
+  // ═══ CH 14: Infrastructure ═══
+  {ch:14,t:"Bridge: 30+ Modules for Remote Execution",d:"JWT validation, session IDs, work secrets, and backward compatibility. The bridge connects local Claude Code to remote compute.",f:"src/bridge/",l:"<strong>Protocol complexity:</strong> Remote sessions need authentication (JWT), identification (session ID), authorization (work secrets), and communication (multiple transports). 30+ modules manage this complexity."},
+  {ch:14,t:"Triple Transport: SSE, WebSocket, Hybrid",d:"Three transport options for remote sessions. Hybrid combines SSE (server→client) with HTTP POST (client→server).",f:"src/bridge/",l:"<strong>Why three:</strong> WebSocket is ideal but blocked by some corporate proxies. SSE works everywhere but is one-directional. Hybrid combines SSE down with POST up — universal compatibility with bidirectional communication."},
+  {ch:14,t:"NDJSON Streaming Protocol",d:"Messages are newline-delimited JSON. Each line is a complete JSON object — simple to parse, stream-friendly, and debuggable.",f:"src/bridge/",l:"<strong>Why NDJSON:</strong> Unlike regular JSON arrays, NDJSON can be parsed line-by-line as it arrives. No need to wait for the closing bracket. Ideal for streaming AI responses."},
+  {ch:14,t:"Capacity-Based Session Waking",d:"Remote sessions wake on capacity signals, not polling. The bridge knows when the server has resources available.",f:"src/bridge/",l:"<strong>No polling:</strong> Polling wastes bandwidth and adds latency. Capacity-based waking means the session starts instantly when resources are available. Like a push notification vs refreshing your inbox."},
+  {ch:14,t:"Exponential Backoff: 2→4→8→16s",d:"Teleport retries at doubling intervals for transient errors. Auth failures exit immediately — no point retrying a bad token.",f:"src/utils/teleport/",l:"<strong>Smart retry:</strong> Transient errors (network blip) are worth retrying. Permanent errors (bad auth) are not. Exponential backoff prevents thundering herd when many clients reconnect simultaneously."},
+  {ch:14,t:"Vendor Beta Header: ccr-byoc-2025-07-29",d:"A versioned beta header for Cloud Code Runtime. The date in the header name tracks the API version.",f:"src/utils/teleport/",l:"<strong>API versioning:</strong> Embedding the date in the header name means the server can identify exactly which API version the client expects. When the API evolves, the header changes."},
+  {ch:14,t:"Ultraplan: Remote Planning Approval",d:"Scans user input for 'ultraplan' keyword. A CCR session scanner polls for ExitPlanMode outcomes: approved, rejected, timeout.",f:"src/utils/ultraplan/",l:"<strong>Workflow:</strong> User types 'ultraplan'. Claude makes a plan. The plan opens in a browser for review. User approves or rejects. The CLI detects the outcome and proceeds. Human-in-the-loop, across two interfaces."},
+  {ch:14,t:"WebSocket Buffer: 1,000 Messages",d:"A CircularBuffer with DEFAULT_MAX_BUFFER_SIZE=1,000 buffers messages during disconnection. Reconnect delay starts at 1,000ms.",f:"src/bridge/",l:"<strong>Offline resilience:</strong> If the connection drops for a few seconds, messages queue in the circular buffer. On reconnect, they're replayed. Only prolonged disconnection loses data."},
+  {ch:14,t:"Task ID: Base36, 2.8 Trillion Combos",d:"Task IDs use base36 alphabet (0-9, a-z) at 8 characters: 36^8 = 2,821,109,907,456 possible IDs. Resists brute-force symlink attacks.",f:"src/utils/task/",l:"<strong>Security consideration:</strong> If task IDs were predictable, an attacker could create symlinks at predicted paths. 2.8 trillion possibilities makes guessing infeasible."},
+  {ch:14,t:"CircularBuffer: O(1) Add, Modulo Arithmetic",d:"Fixed-size rolling window with a single head pointer. getRecent() uses modulo to walk backward from head. No array shifts.",f:"src/utils/",l:"<strong>Data structure choice:</strong> An array with shift/push has O(n) cost for maintaining fixed size. CircularBuffer overwrites the oldest entry in O(1). Perfect for bounded logs and message buffers."},
+
+  // ═══ CH 15: Components ═══
+  {ch:15,t:"200+ React Components for Terminal",d:"Messages, diffs, dialogs, wizards, settings, onboarding, permissions — all rendered as React components in terminal cells.",f:"src/components/",l:"<strong>React for TUI:</strong> The same component model that powers Instagram's web UI powers this terminal. useState, useEffect, JSX — all work, but render to escape codes instead of DOM."},
+  {ch:15,t:"Structured Diff Viewer",d:"DiffFileList, DiffDialog, DiffDetailView — a full git diff visualization system with syntax highlighting in the terminal.",f:"src/components/diff/",l:"<strong>Beyond plain text:</strong> Most CLIs show diffs as raw unified format. This renders them with color-coded additions/deletions, file navigation, and collapsible sections."},
+  {ch:15,t:"Agent Creation Wizard",d:"A multi-step wizard for creating new agents with step-by-step configuration. Full wizard UI in the terminal.",f:"src/components/agents/new-agent-creation/wizard-steps/",l:"<strong>Progressive disclosure:</strong> Creating an agent has many options. A wizard breaks them into digestible steps instead of one overwhelming form. Works with tab navigation and enter to advance."},
+  {ch:15,t:"FuzzyPicker: Search Everything",d:"A fuzzy search component used across the app — commands, files, settings, tags. Type to filter, arrow keys to navigate, enter to select.",f:"src/components/design-system/",l:"<strong>Universal pattern:</strong> One search component serves many purposes. The same interaction pattern (type, filter, select) works for commands, file open, setting changes, and session resume."},
+  {ch:15,t:"Permission Request Components",d:"Dedicated UI for each tool type: BashPermissionRequest, FileEditPermissionRequest, WebFetchPermissionRequest, and 8 more.",f:"src/components/permissions/",l:"<strong>Context-specific approval:</strong> A bash command shows the command to be run. A file edit shows the diff. A web fetch shows the URL. Each permission type presents the information most relevant to the decision."},
+  {ch:15,t:"Session History: 100 Items, 1KB Paste Limit",d:"MAX_HISTORY_ITEMS=100 entries. Pasted content inline up to 1,024 characters; larger pastes stored in an external paste store with hash references.",f:"src/history.ts",l:"<strong>Memory management:</strong> Storing 100 full-length pastes could consume megabytes. The 1KB inline limit keeps the history compact. Larger pastes are stored by hash — deduplicated automatically."},
+  {ch:15,t:"Startup Profiling Checkpoints",d:"main.tsx entry, MDM config read (async plutil/reg query subprocess), keychain prefetch in parallel (macOS OAuth + legacy API key).",f:"src/entrypoints/",l:"<strong>Startup speed:</strong> By running MDM config read and keychain access in parallel (not sequentially), startup time is bounded by the slowest operation, not the sum of all operations."},
+  {ch:15,t:"Color Diff Engine in Native TypeScript",d:"A custom color difference algorithm for comparing terminal color values, implemented in pure TypeScript.",f:"src/native-ts/color-diff/",l:"<strong>Why custom:</strong> Terminal colors exist in a limited palette (256 colors or true color). A custom diff engine can optimize for this constrained color space."},
+  {ch:15,t:"Native File Index for Fast Scanning",d:"Custom file indexing implementation for rapid codebase scanning, bypassing generic filesystem traversal.",f:"src/native-ts/file-index/",l:"<strong>Performance:</strong> For a 10,000-file monorepo, generic fs.readdir is too slow for interactive use. A custom index pre-computes paths for instant lookup."},
+  {ch:15,t:"Grove: Privacy as a Garden",d:"The data privacy consent dialog is themed as a 'grove'. Grace period handling, data retention (30 days vs 5 years), and training opt-in.",f:"src/components/grove/Grove.tsx",l:"<strong>Legal UX:</strong> Privacy consent is legally required but typically hostile. Theming it as a 'grove' and separating grace period from post-grace content makes the experience less adversarial."},
+
+  // ═══ CH 16: Whimsy ═══
+  {ch:16,t:"Rind the Cactus Companion",d:"A small cactus named Rind sits beside the input box and occasionally comments in a speech bubble. It has its own distinct personality.",f:"src/buddy/",l:"<strong>Emotional design:</strong> A persistent companion makes the tool feel less like a utility and more like a collaboration. Rind's commentary adds personality without interfering with work."},
+  {ch:16,t:"Session Slugs: adjective-verb-animal",d:"Each session gets a slug like 'twinkly-discovering-platypus'. Three random words. Always delightful, always memorable.",f:"src/commands/rename/",l:"<strong>Human memory:</strong> 'Session 3cc5b7c6-7ff1-4208' is impossible to remember. 'twinkly-discovering-platypus' is unforgettable. The three-word format ensures uniqueness while staying pronounceable."},
+  {ch:16,t:"Duck Tail Waggle: One Character of Joy",d:"The duck companion's animation frame 2 adds a single '~' character to the tail. One character. Maximum personality.",f:"src/buddy/sprites.ts:40",l:"<strong>Minimalist animation:</strong> Professional animators know: the smallest gestures are often the most endearing. A single tilde transforms a static duck into one that feels alive."},
+  {ch:16,t:"Shiny Legendary: 1 in 10,000",d:"1% Legendary × 1% shiny = 0.01% chance. Among 10,000 users, statistically only one has a shiny Legendary companion.",f:"src/buddy/",l:"<strong>Aspiration:</strong> The extreme rarity creates stories. 'I have a shiny Legendary robot!' becomes a point of pride and conversation. Social currency from a CLI tool."},
+  {ch:16,t:"Year in Review: Terminal Animation",d:"Thinkback generates a full animated retrospective of your coding year, rendered entirely in terminal escape sequences.",f:"src/commands/thinkback/",l:"<strong>Like Spotify Wrapped:</strong> Personalizing the experience with 'you ran 1,247 commands this year' creates emotional connection. It's marketing that users genuinely enjoy."},
+  {ch:16,t:"DXT Plugin Format",d:"A custom plugin packaging format with dedicated utilities for loading, validation, and distribution.",f:"src/utils/dxt/",l:"<strong>Ecosystem building:</strong> A custom package format (like VS Code's .vsix) enables controlled distribution, signature verification, and a marketplace. It's the foundation of an extension ecosystem."},
+  {ch:16,t:"Deep Link Support",d:"URL-based deep links can open Claude Code to a specific state, context, or conversation.",f:"src/utils/deepLink/",l:"<strong>Cross-tool integration:</strong> A GitHub PR could link directly to 'claude-code://review/PR-123'. Deep links make the CLI a first-class citizen in web-based workflows."},
+  {ch:16,t:"Poetic Session Names via AI",d:"When you /rename, Claude generates the name. Not random strings — actually meaningful names that describe what the session is about.",f:"src/commands/rename/generateSessionName.ts",l:"<strong>AI-generated metadata:</strong> Using the AI to name its own sessions is meta but practical. 'fix-auth-middleware-cors' is more useful than 'session-47' and doesn't require the user to think of a name."},
+  {ch:16,t:"QR Codes in the Terminal",d:"The /session command generates QR codes rendered in terminal Unicode characters. Scan to open the session on your phone.",f:"src/commands/session/",l:"<strong>Bridge to mobile:</strong> Terminal → QR code → phone camera → web browser. Four hops to go from CLI to mobile. Surprisingly practical for sharing sessions."},
+  {ch:16,t:"djb2 Hash: Bit Shift + Subtract",d:"Uses the djb2 hash algorithm: shift left 5, subtract, OR with 0 to cast to signed 32-bit int. Fast, deterministic, non-cryptographic.",f:"src/utils/",l:"<strong>Classic algorithm:</strong> djb2 was created by Daniel J. Bernstein and has been used since the 1990s. Its simplicity (one shift, one subtract) makes it incredibly fast for hash tables and checksums."},
+  {ch:16,t:"Bun.hash Uses wyhash: ~100x Faster",d:"When running under Bun, uses wyhash internally — approximately 100x faster than SHA-256. Requires seed-chaining for pair hashing.",f:"src/utils/",l:"<strong>Runtime optimization:</strong> Bun's native hash function is implemented in Zig, operating on raw memory. The 100x speedup matters when hashing thousands of file paths during indexing."},
+  {ch:16,t:"Token Budget Parsing: +500k Shorthand",d:"Supports three formats: '+500k' at line start/end, 'use 2M tokens' verbose, with case-insensitive k/m/b multipliers.",f:"src/utils/",l:"<strong>Developer ergonomics:</strong> Instead of 'set max tokens to 500000', you can type '+500k'. The parser handles the SI suffixes that developers already think in."},
+  {ch:16,t:"The Migration System",d:"A dedicated migrations directory handles schema and state evolution across versions. CLI tools have database-like upgrade needs.",f:"src/migrations/",l:"<strong>Surprising complexity:</strong> A CLI tool having migrations means it stores structured data that evolves. Session format, memory schema, settings structure — all need versioned upgrades."},
+  {ch:16,t:"Cron Expression Parser",d:"5-field cron with step syntax (*/5), ranges (1-31), lists (1,3,5). Maps day-of-week 7→0 for Sunday compatibility.",f:"src/utils/",l:"<strong>Built-in scheduling:</strong> Claude Code can schedule recurring tasks using standard cron syntax. The 7→0 mapping handles the age-old Sunday debate (is it 0 or 7?). Answer: both."},
+  {ch:16,t:"Process stdin Peek with Timeout",d:"peekForStdinData() waits a configurable timeout for the first data chunk, then reads until end. Detects piped input vs interactive.",f:"src/utils/",l:"<strong>Input detection:</strong> 'echo \"fix bug\" | claude' should read from stdin. Interactive 'claude' should show the prompt. Peeking for data in the first few milliseconds distinguishes the two cases."},
+];
+
+// ═══════════════════════════════════════════════════════════════
+// ENGINE
+// ═══════════════════════════════════════════════════════════════
+
+let cur = 0, started = false, searchOpen = false, chNavOpen = false;
+let skipInterstitial = false;
+
+const chStarts = [];
+CH.forEach((ch, ci) => {
+  const idx = I.findIndex(x => x.ch === ci);
+  if (idx !== -1) chStarts.push({ci, idx});
+});
+
+function startTrail() {
+  document.getElementById('title-screen').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  started = true;
+  buildTrailMap();
+  buildChapterNav();
+  skipInterstitial = true; // don't show interstitial for chapter 0
+  showInsight(0);
+  setTimeout(() => document.getElementById('title-screen').style.display='none', 800);
+}
+
+function buildTrailMap() {
+  const t = document.getElementById('track');
+  t.innerHTML = '';
+  I.forEach((ins, i) => {
+    if (i > 0) { const s = document.createElement('div'); s.className='seg'; s.dataset.i=i; t.appendChild(s); }
+    const d = document.createElement('div');
+    d.className = 'dot' + (chStarts.some(c=>c.idx===i) ? ' ch' : '');
+    d.dataset.i = i;
+    d.addEventListener('click', () => { skipInterstitial=true; goTo(i); });
+    d.title = `#${i+1}: ${ins.t}`;
+    t.appendChild(d);
+  });
+}
+
+function buildChapterNav() {
+  const nav = document.getElementById('chapter-nav');
+  nav.innerHTML = CH.map((ch, ci) => `<div class="cn-dot" data-ch="${ci}" onclick="jumpChapter(${ci})"><div class="cn-bar"></div><div class="cn-tip">${ch.title}</div></div>`).join('');
+}
+
+function jumpChapter(ci) {
+  const cs = chStarts.find(c=>c.ci===ci);
+  if (cs) { skipInterstitial=true; goTo(cs.idx); }
+}
+
+function showInsight(idx) {
+  if (idx < 0 || idx >= I.length) return;
+
+  const newCh = I[idx].ch;
+  const oldCh = cur >= 0 && cur < I.length ? I[cur].ch : -1;
+  const isChStart = chStarts.some(c => c.idx === idx);
+
+  // Show chapter interstitial when entering a new chapter (unless skipped)
+  if (isChStart && newCh !== oldCh && !skipInterstitial) {
+    showInterstitial(newCh, idx);
+    return;
+  }
+  skipInterstitial = false;
+
+  cur = idx;
+  const ins = I[idx];
+  const ch = CH[ins.ch];
+
+  // Card
+  const card = document.getElementById('card');
+  card.className = 'card entering';
+  card.innerHTML = `
+    <div class="card-header">
+      <span class="card-number">#${idx+1} / ${I.length}</span>
+      <span class="card-chapter">${ch.title.split(':')[0]}</span>
+    </div>
+    <div class="card-body">
+      <div class="card-title">${esc(ins.t)}</div>
+      <div class="card-text">${esc(ins.d)}</div>
+      ${ins.l ? `<div class="card-learn">${ins.l}</div>` : ''}
+    </div>
+    <div class="card-footer">
+      <span class="card-file">${esc(ins.f)}</span>
+      ${ins.v ? `<span class="card-value">${esc(ins.v)}</span>` : ''}
+      <span class="card-tag">${ch.id}</span>
+    </div>`;
+  requestAnimationFrame(() => requestAnimationFrame(() => card.classList.remove('entering')));
+
+  // Trail map
+  document.querySelectorAll('.dot').forEach((d,i) => { d.classList.toggle('v',i<=idx); d.classList.toggle('a',i===idx); });
+  document.querySelectorAll('.seg').forEach((s,i) => { s.classList.toggle('v',i<idx); });
+
+  // Scroll trail
+  const track = document.getElementById('track');
+  const dw = 14;
+  const mw = document.getElementById('trail-map').offsetWidth;
+  track.style.transform = `translateX(-${Math.max(0, idx*dw - mw/2)}px)`;
+  document.getElementById('wagon').style.left = `${24 + idx*dw}px`;
+
+  // Topbar
+  document.getElementById('topbar-chapter').textContent = ch.title;
+  document.getElementById('topbar-mile').textContent = `Mile ${idx+1} of ${I.length}`;
+  document.getElementById('progress').textContent = `${Math.round((idx+1)/I.length*100)}% explored`;
+
+  // Chapter nav active state
+  document.querySelectorAll('.cn-dot').forEach(d => d.classList.toggle('active', parseInt(d.dataset.ch) === ins.ch));
+
+  // Scroll content to top
+  document.getElementById('content').scrollTop = 0;
+}
+
+function showInterstitial(chIdx, targetIdx) {
+  const ch = CH[chIdx];
+  const count = I.filter(x => x.ch === chIdx).length;
+  document.getElementById('inter-num').textContent = `CHAPTER ${chIdx+1} OF ${CH.length}`;
+  document.getElementById('inter-title').textContent = ch.title;
+  document.getElementById('inter-desc').textContent = ch.desc;
+  document.getElementById('inter-count').textContent = `${count} insights ahead`;
+  document.getElementById('interstitial').classList.add('show');
+
+  const dismiss = () => {
+    document.getElementById('interstitial').classList.remove('show');
+    document.removeEventListener('keydown', dismiss);
+    document.getElementById('interstitial').removeEventListener('click', dismiss);
+    // Set skipInterstitial so showInsight doesn't re-trigger
+    skipInterstitial = true;
+    setTimeout(() => showInsight(targetIdx), 250);
+  };
+  setTimeout(() => {
+    document.addEventListener('keydown', dismiss, {once:true});
+    document.getElementById('interstitial').addEventListener('click', dismiss, {once:true});
+  }, 150);
+}
+
+function goTo(idx) { showInsight(Math.max(0, Math.min(I.length-1, idx))); }
+function next() { goTo(cur+1); }
+function prev() { goTo(cur-1); }
+
+function toggleSearch() {
+  searchOpen = !searchOpen;
+  const o = document.getElementById('search-overlay');
+  o.classList.toggle('show', searchOpen);
+  if (searchOpen) { const b=document.getElementById('search-box'); b.value=''; b.focus(); updateSearch(''); }
+}
+
+function toggleChapterNav() {
+  chNavOpen = !chNavOpen;
+  document.getElementById('chapter-nav').classList.toggle('show', chNavOpen);
+}
+
+function updateSearch(q) {
+  const r = document.getElementById('search-results');
+  if (!q.trim()) { r.innerHTML='<div style="color:var(--dim);padding:10px;font-size:17px">Type to search all insights...</div>'; return; }
+  const lq = q.toLowerCase();
+  const hits = I.map((ins,i)=>({ins,i})).filter(({ins})=>
+    ins.t.toLowerCase().includes(lq)||ins.d.toLowerCase().includes(lq)||(ins.v&&ins.v.toLowerCase().includes(lq))||(ins.f&&ins.f.toLowerCase().includes(lq))
+  ).slice(0,40);
+  r.innerHTML = hits.length ? hits.map(({ins,i})=>`<div class="sh" onclick="selSearch(${i})"><span class="sh-n">#${i+1}</span><span class="sh-t">${esc(ins.t)}</span><span class="sh-c">${CH[ins.ch].id}</span></div>`).join('')
+    : '<div style="color:var(--dim);padding:10px;font-size:17px">No insights found...</div>';
+}
+
+function selSearch(idx) { toggleSearch(); skipInterstitial=true; goTo(idx); }
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (searchOpen) { if (e.key==='Escape'){toggleSearch();e.preventDefault()} return; }
+  if (document.getElementById('interstitial').classList.contains('show')) return;
+  if (!started) { if (e.key==='Enter'){startTrail();e.preventDefault()} return; }
+  switch(e.key) {
+    case 'ArrowRight':case 'l':case 'j': next(); e.preventDefault(); break;
+    case 'ArrowLeft':case 'h':case 'k': prev(); e.preventDefault(); break;
+    case '/': toggleSearch(); e.preventDefault(); break;
+    case 'c':case 'C': toggleChapterNav(); break;
+    case 'G': const t=prompt(`Jump to insight (1-${I.length}):`); if(t)goTo(parseInt(t)-1); break;
+    case 'Home': goTo(0); e.preventDefault(); break;
+    case 'End': goTo(I.length-1); e.preventDefault(); break;
+    case ']': { const nc=chStarts.find(c=>c.idx>cur); if(nc){skipInterstitial=true;goTo(nc.idx);} e.preventDefault(); break; }
+    case '[': { const pc=[...chStarts].reverse().find(c=>c.idx<cur); if(pc){skipInterstitial=true;goTo(pc.idx);} e.preventDefault(); break; }
+  }
+});
+
+document.getElementById('search-box').addEventListener('input', e => updateSearch(e.target.value));
+document.getElementById('search-box').addEventListener('keydown', e => {
+  if (e.key==='Enter') { const f=document.querySelector('.sh'); if(f)f.click(); }
+});
+
+// Touch swipe
+let tx=0;
+document.addEventListener('touchstart', e => { tx=e.touches[0].clientX; });
+document.addEventListener('touchend', e => { if(!started)return; const dx=e.changedTouches[0].clientX-tx; if(Math.abs(dx)>50){dx>0?prev():next();} });
+</script>
+</body>
+</html>
