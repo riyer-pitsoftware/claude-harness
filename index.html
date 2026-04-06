@@ -125,6 +125,59 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
   .card-body{padding:12px}.card-text{font-size:19px}.card-learn{font-size:16px}
   #chapter-nav{display:none!important}.nav-hint{font-size:14px}
 }
+
+/* ── File source links ── */
+.card-file a{color:inherit;text-decoration:none}
+.card-file a:hover{color:var(--green);text-decoration:underline}
+
+/* ── Branch trail button ── */
+.branch-btn{font-family:var(--term);font-size:17px;color:var(--cyan);background:rgba(0,255,255,.06);border:1px solid rgba(0,255,255,.3);padding:3px 10px;border-radius:3px;cursor:pointer;transition:all .15s}
+.branch-btn:hover{background:rgba(0,255,255,.13);border-color:var(--cyan)}
+.branch-btn.solved{color:var(--green);border-color:rgba(0,255,65,.4);background:rgba(0,255,65,.06)}
+
+/* ── Branch trail overlay ── */
+#branch-overlay{position:fixed;inset:0;z-index:60;background:rgba(10,10,26,.97);display:none;flex-direction:column;align-items:center;padding:18px 16px}
+.branch-header{width:100%;max-width:760px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0}
+.branch-label{font-family:var(--pixel);font-size:8px;color:var(--cyan);text-shadow:0 0 8px rgba(0,255,255,.4)}
+.branch-close{font-size:18px;color:var(--dim);cursor:pointer;background:none;border:none;font-family:var(--term);padding:0}
+.branch-close:hover{color:var(--text)}
+.branch-track-wrap{width:100%;max-width:760px;margin-bottom:12px;display:flex;align-items:center;gap:0;flex-shrink:0}
+.b-dot{width:10px;height:10px;border-radius:50%;background:var(--dim2);flex-shrink:0;transition:all .2s}
+.b-dot.v{background:var(--cyan)}
+.b-dot.a{transform:scale(1.7);background:var(--cyan);box-shadow:0 0 8px rgba(0,255,255,.6)}
+.b-seg{flex:1;height:2px;background:var(--dim2);transition:background .2s}
+.b-seg.v{background:var(--cyan)}
+.branch-card{max-width:760px;width:100%;background:var(--bg2);border:1px solid rgba(0,255,255,.25);border-radius:4px;overflow:hidden;flex-shrink:0}
+.branch-card-hdr{background:linear-gradient(90deg,rgba(0,255,255,.07),transparent);padding:10px 16px;border-bottom:1px solid rgba(0,255,255,.12);display:flex;align-items:center;gap:10px}
+.branch-lv{font-family:var(--pixel);font-size:8px;color:var(--cyan)}
+.branch-card-body{padding:16px}
+.branch-card-title{font-family:var(--pixel);font-size:clamp(9px,1.5vw,11px);color:var(--cyan);line-height:2;margin-bottom:8px}
+.branch-card-desc{font-size:21px;color:var(--text);line-height:1.7}
+.branch-card-core{font-size:18px;color:var(--amber);line-height:1.6;margin-top:12px;padding:10px;background:rgba(255,176,0,.05);border:1px solid rgba(255,176,0,.15);border-radius:3px}
+.branch-card-ftr{padding:10px 16px;border-top:1px solid rgba(0,255,255,.1);display:flex;gap:8px;justify-content:flex-end}
+.btn-b{font-family:var(--term);font-size:18px;padding:4px 14px;border-radius:3px;cursor:pointer;border:1px solid;transition:all .15s;background:none}
+.btn-b-prev{color:var(--dim);border-color:var(--dim2)}
+.btn-b-prev:hover{color:var(--text);border-color:var(--dim)}
+.btn-b-next{color:var(--cyan);border-color:rgba(0,255,255,.35)}
+.btn-b-next:hover{background:rgba(0,255,255,.09)}
+.btn-b-gate{color:var(--green);border-color:rgba(0,255,65,.4)}
+.btn-b-gate:hover{background:rgba(0,255,65,.09)}
+
+/* ── Puzzle overlay ── */
+#puzzle-overlay{position:fixed;inset:0;z-index:70;background:rgba(10,10,26,.98);display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.puzzle-box{max-width:620px;width:100%}
+.puzzle-label{font-family:var(--pixel);font-size:9px;color:var(--amber);letter-spacing:2px;margin-bottom:18px}
+.puzzle-q{font-family:var(--pixel);font-size:clamp(9px,1.4vw,11px);color:var(--green);line-height:2.2;margin-bottom:20px}
+.puzzle-opts{display:flex;flex-direction:column;gap:10px}
+.puzzle-opt{font-size:21px;color:var(--text);background:var(--bg2);border:1px solid var(--dim2);border-radius:3px;padding:10px 14px;cursor:pointer;transition:all .15s;text-align:left;font-family:var(--term)}
+.puzzle-opt:hover{border-color:var(--amber);color:var(--amber)}
+.puzzle-opt.correct{border-color:var(--green);color:var(--green);background:rgba(0,255,65,.08)}
+.puzzle-opt.wrong{border-color:var(--rose);color:var(--rose);background:rgba(244,63,94,.08)}
+.puzzle-result{font-size:20px;margin-top:16px;min-height:24px;font-family:var(--term)}
+.puzzle-return{display:none;margin-top:14px;font-family:var(--term);font-size:20px;color:var(--green);background:rgba(0,255,65,.08);border:1px solid rgba(0,255,65,.4);padding:8px 18px;border-radius:3px;cursor:pointer;animation:blink 1.2s step-end infinite}
+.puzzle-return:hover{background:rgba(0,255,65,.15)}
+.puzzle-retry{display:none;font-size:17px;color:var(--dim);background:none;border:none;cursor:pointer;font-family:var(--term);margin-top:10px}
+.puzzle-retry:hover{color:var(--text)}
 </style>
 </head>
 <body>
@@ -178,7 +231,283 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 <!-- Chapter Nav -->
 <div id="chapter-nav"></div>
 
+<!-- Branch Trail Overlay -->
+<div id="branch-overlay">
+  <div class="branch-header">
+    <span class="branch-label">&#x25B6; BRANCH TRAIL &mdash; TECH DEEP DIVE</span>
+    <button class="branch-close" onclick="closeBranch()">&#x2715; Return to main trail</button>
+  </div>
+  <div class="branch-track-wrap" id="branch-track"></div>
+  <div class="branch-card" id="branch-card"></div>
+</div>
+
+<!-- Puzzle Overlay -->
+<div id="puzzle-overlay">
+  <div class="puzzle-box">
+    <div class="puzzle-label">&#x25B6; TRAIL GATE &mdash; ANSWER TO RETURN</div>
+    <div class="puzzle-q" id="puzzle-q"></div>
+    <div class="puzzle-opts" id="puzzle-opts"></div>
+    <div class="puzzle-result" id="puzzle-result"></div>
+    <button class="puzzle-return" id="puzzle-return" onclick="returnToTrail()">&#x25B6; Return to Main Trail _</button>
+    <button class="puzzle-retry" id="puzzle-retry" onclick="retryPuzzle()">Review branch &amp; try again</button>
+  </div>
+</div>
+
 <script>
+// ═══════════════════════════════════════════════════════════════
+// SOURCE LINKS
+// ═══════════════════════════════════════════════════════════════
+
+const REPO = 'https://github.com/riyer-pitsoftware/claude-harness';
+function fileUrl(f) {
+  if (!f) return null;
+  const onGH = window.location.hostname.includes('github.io');
+  const type = f.endsWith('/') ? 'tree' : 'blob';
+  return onGH ? `${REPO}/${type}/main/${f}` : f;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BRANCH TRAIL DATA
+// B[insightIndex] = { trail:[{title,level,desc,core}×3], puzzle:{q,opts,ans} }
+// ═══════════════════════════════════════════════════════════════
+
+const B = {
+  // Ch 0 — Genesis: Half a Million Lines of TypeScript
+  0: {
+    trail:[
+      {title:'TypeScript',level:'Sourced Tech',
+       desc:'Claude Code is 99.1% TypeScript — a typed superset of JavaScript developed by Microsoft. The type system catches entire classes of runtime bugs at compile time, making a 512K-line codebase navigable by a team.',
+       core:'Why TypeScript over plain JS: at scale, JavaScript\'s dynamic typing becomes a maintenance nightmare. TypeScript\'s structural type system catches refactoring mistakes that would otherwise only surface at runtime in production.'},
+      {title:'tsc — The TypeScript Compiler',level:'How It Works',
+       desc:'TypeScript source (.ts) is compiled to plain JavaScript by tsc. The compiler performs type-checking, strips types, and emits .js files. It uses a multi-pass architecture: parse → bind → check → emit.',
+       core:'tsc doesn\'t just remove types — it analyzes every identifier across the entire program graph. For 1,884 files, this is an expensive graph traversal. Incremental builds (--incremental) cache the graph to only re-check changed files.'},
+      {title:'V8 JavaScript Engine',level:'Core Tech',
+       desc:'The compiled JavaScript runs on V8 — Google\'s open-source engine. V8 uses JIT compilation: it starts interpreting bytecode (Ignition interpreter) and then compiles hot paths to native machine code (TurboFan optimizer).',
+       core:'V8 Hidden Classes: when you access obj.x repeatedly, V8 tracks the property layout as a "shape." If all instances share the same shape, property access compiles to a single memory offset — as fast as a C struct field lookup.'},
+    ],
+    puzzle:{q:'What V8 optimization makes repeated property access as fast as a C struct?',opts:['JIT compilation via TurboFan','Ignition bytecode caching','Hidden Classes (object shapes)','Garbage collection pauses'],ans:2}
+  },
+
+  // Ch 1 — Terminal Frontier: Custom Yoga Layout Engine in WASM
+  11: {
+    trail:[
+      {title:'Facebook Yoga',level:'Sourced Tech',
+       desc:'Claude Code\'s terminal layout uses Yoga — Meta\'s open-source implementation of the CSS Flexbox spec, originally built for React Native. It lets you use flex-direction, align-items, and justify-content inside a terminal.',
+       core:'Why Yoga specifically: it\'s battle-tested across billions of mobile devices (every Facebook and Instagram screen uses it). Adopting it for the terminal means zero layout bugs — only integration work.'},
+      {title:'WebAssembly (WASM)',level:'How It Works',
+       desc:'Yoga is compiled to WASM so it runs inside Node.js alongside TypeScript. WASM is a binary instruction format that executes at near-native speed in any runtime — browser, Node, Deno, or embedded.',
+       core:'The WASM pipeline: Yoga\'s C++ source → Emscripten compiler → .wasm binary → loaded by Node.js via WebAssembly.instantiate(). The result is a native-speed layout engine callable from TypeScript with zero FFI overhead.'},
+      {title:'CSS Flexbox Spec (W3C)',level:'Core Tech',
+       desc:'Yoga implements the W3C CSS Flexible Box Layout specification. This spec defines how flex containers distribute space among their children — the same algorithm behind every modern web layout.',
+       core:'Flexbox is a two-pass algorithm: first pass measures each child\'s intrinsic min/max size. Second pass distributes remaining space using flex-grow/shrink weights. Yoga runs both passes every frame — explaining why layout is the hot path in terminal rendering.'},
+    ],
+    puzzle:{q:'What two steps does the Flexbox layout algorithm take each frame?',opts:['Parse then emit','Measure then distribute','Compile then link','Diff then patch'],ans:1}
+  },
+
+  // Ch 2 — Tools: 50-Subcommand Security Cutoff
+  22: {
+    trail:[
+      {title:'Bash Shell Grammar',level:'Sourced Tech',
+       desc:'Claude Code\'s Bash tool must parse shell commands to assess safety. Bash has a notoriously complex grammar — nested quotes, heredocs, process substitution, brace expansion, and arithmetic contexts all interact in non-obvious ways.',
+       core:'Why Bash parsing is hard: the grammar is context-sensitive. "$()" can be command substitution or arithmetic. Single quotes disable all expansion; double quotes allow some. No regular expression can handle all cases — you need a real parser.'},
+      {title:'Tree-sitter',level:'How It Works',
+       desc:'Tree-sitter is an incremental parsing library that produces a concrete syntax tree (CST) for any grammar. Claude Code runs tree-sitter on each bash subcommand to detect dangerous patterns with structural precision.',
+       core:'Tree-sitter uses a GLR (Generalized LR) parser — it handles ambiguous grammars by exploring multiple parse paths simultaneously in a graph-structured stack. This is essential for Bash, which has genuinely ambiguous constructs.'},
+      {title:'Context-Free Grammars & GLR Parsing',level:'Core Tech',
+       desc:'A Context-Free Grammar (CFG) defines production rules that regular expressions cannot express. GLR (Generalized Left-to-Right) parsing handles any CFG — including ambiguous ones — by tracking all valid parse states in parallel.',
+       core:'Chomsky hierarchy: Regular languages ⊂ Context-Free ⊂ Context-Sensitive ⊂ Recursively Enumerable. Bash sits in context-sensitive territory, but tree-sitter\'s CFG approximation is close enough for security analysis while remaining efficient.'},
+    ],
+    puzzle:{q:'Why can\'t regular expressions fully parse Bash commands?',opts:['Bash files are too large','Bash has context-sensitive constructs beyond what CFGs can express','Regex engines lack Unicode support','Regular expressions can\'t handle pipe characters'],ans:1}
+  },
+
+  // Ch 3 — Bash Gauntlet: Tree-Sitter Bash Parsing
+  31: {
+    trail:[
+      {title:'Tree-sitter (deeper)',level:'Sourced Tech',
+       desc:'Tree-sitter builds an incremental CST: when code changes, only the affected region is re-parsed. Beyond editor highlighting, Claude Code uses it for security analysis — precisely identifying command names, flags, and pipe targets.',
+       core:'Security application: tree-sitter can detect "rm -rf /" even inside "timeout 5 env X=1 rm -rf /" because the safe-wrapper stripping logic first normalizes the command, then the tree-sitter AST identifies the real operation.'},
+      {title:'LALR(1) Parsing',level:'How It Works',
+       desc:'Tree-sitter generates LALR(1) parsers — Look-Ahead Left-to-Right with 1 token of lookahead. The parser is compiled from a grammar.js definition into a state machine that parses in linear O(n) time for unambiguous inputs.',
+       core:'LALR vs LL: LL parsers build the tree top-down (predict then match). LR parsers build bottom-up (shift then reduce). LR handles more grammars naturally — including left-recursive rules that LL can\'t express without transformation.'},
+      {title:'Earley Algorithm & Chart Parsing',level:'Core Tech',
+       desc:'For genuinely ambiguous constructs, tree-sitter falls back to generalized parsing. The Earley algorithm handles any CFG in O(n³) worst-case, O(n) for unambiguous grammars, by tracking all possible parse states as a chart.',
+       core:'Earley\'s key insight: represent the parse as "items" — partial rule matches with position markers. Each input token advances applicable items. At the end, the chart contains every valid parse simultaneously. Ambiguity becomes explicit, not catastrophic.'},
+    ],
+    puzzle:{q:'What is the key advantage of LR (bottom-up) parsing over LL (top-down)?',opts:['LR is always faster','LR naturally handles left-recursive grammar rules without transformation','LR uses less memory','LR only requires one pass over the input'],ans:1}
+  },
+
+  // Ch 4 — Commands: /thinkback
+  45: {
+    trail:[
+      {title:'React (via Ink renderer)',level:'Sourced Tech',
+       desc:'Slash commands in Claude Code are React components — but not web React. Ink is a custom React renderer that draws to the terminal. JSX, hooks, and component composition all work, but output is terminal escape codes instead of DOM nodes.',
+       core:'How Ink hooks into React: React\'s reconciler (react-reconciler) is separate from the DOM renderer. Ink implements its own "host config" — a contract React calls to create, update, and delete nodes, which Ink maps to terminal cells.'},
+      {title:'React Reconciler (react-reconciler)',level:'How It Works',
+       desc:'react-reconciler is React\'s diffing and update engine exposed as a standalone package. It implements the fiber architecture: each component instance is a "fiber" with state, effects, and pointers to parent/child/sibling fibers.',
+       core:'The fiber tree enables time-sliced rendering: React can pause reconciliation mid-tree, yield to higher-priority updates, then resume. In a terminal, this means a keypress can interrupt a slow render pass without corrupting state.'},
+      {title:'Fiber Architecture & Concurrent Rendering',level:'Core Tech',
+       desc:'React Fiber (React 16+) is a rewrite of the reconciler. Each fiber is a unit of work with priority. The scheduler uses MessageChannel to yield control between fibers, enabling rendering to be interruptible.',
+       core:'Fiber separates "render phase" (diffing, pure, interruptible) from "commit phase" (DOM mutation, side effects, not interruptible). This is why React can be concurrent without corrupting output — only the safe, pure phase is interrupted.'},
+    ],
+    puzzle:{q:'Why is only the render phase interruptible in React Fiber, not the commit phase?',opts:['The commit phase is faster','The render phase is pure and safe to interrupt; the commit phase mutates output and cannot be half-applied','Commit phase runs on a different thread','Render phase uses more memory'],ans:1}
+  },
+
+  // Ch 5 — Companions: Shiny Legendary
+  63: {
+    trail:[
+      {title:'Procedural Generation',level:'Sourced Tech',
+       desc:'Claude Code\'s companion pets (including Rind the cactus) are procedurally generated — stats, rarity, and appearance are computed from a seed, not stored as fixed assets. Each user\'s companion is unique and deterministic from their ID.',
+       core:'Procedural generation trades storage for compute: instead of storing 10,000 companion variants, you store one algorithm and a seed. The companion is always reproducible from the seed, enabling persistence without a database.'},
+      {title:'Pseudorandom Number Generators (PRNGs)',level:'How It Works',
+       desc:'Procedural generation relies on PRNGs — deterministic algorithms that produce sequences that appear random. Given the same seed, a PRNG produces the exact same sequence, enabling reproducible companions.',
+       core:'Why not true randomness: crypto-random numbers can\'t be replicated from a seed. For companion generation you need reproducibility — the same user always gets the same companion. PRNGs provide "good enough" randomness with perfect reproducibility.'},
+      {title:'djb2 Hash / wyhash',level:'Core Tech',
+       desc:'Claude Code uses djb2 (hash = hash * 33 XOR char) for fast non-cryptographic hashing, and wyhash under Bun (~100× faster than SHA-256). These seed the PRNG for companion generation.',
+       core:'djb2 insight: the multiplier 33 (2⁵ + 1) enables the compiler to optimize to a shift-and-add. It has excellent avalanche properties for short strings — small input changes produce large hash changes — which prevents companion clustering.'},
+    ],
+    puzzle:{q:'Why do companion generators use PRNGs seeded with user IDs rather than true random numbers?',opts:['PRNGs are more secure','PRNGs produce reproducible sequences — the same seed always gives the same companion','True random is too slow','PRNGs use less memory'],ans:1}
+  },
+
+  // Ch 15 — Components: 200+ React Components
+  168: {
+    trail:[
+      {title:'React Component Model',level:'Sourced Tech',
+       desc:'200+ React components power Claude Code\'s terminal UI. The same declarative model used for web — useState, useEffect, context, memoization — works in the terminal through the Ink renderer.',
+       core:'Why React for a CLI: React\'s component model scales. Adding a new permission dialog is just a new component — it gets focus management, keyboard handling, and styling for free from the design system. The alternative (imperative terminal drawing) scales poorly.'},
+      {title:'Virtual DOM & Reconciliation',level:'How It Works',
+       desc:'React maintains a virtual DOM (vDOM) — a lightweight JavaScript representation of the UI. When state changes, React diffs the new vDOM against the previous one and applies only the minimal set of changes to the real output.',
+       core:'vDOM diffing is O(n) with heuristics: React assumes components at the same position in the tree are the same type, and uses keys to match list items. These heuristics make diffing linear rather than the theoretical O(n³) of tree edit distance.'},
+      {title:'React\'s Diffing Heuristics',level:'Core Tech',
+       desc:'React\'s O(n) reconciliation relies on two heuristics: (1) components of different types produce different trees (replace, don\'t diff), and (2) keys uniquely identify list items across renders.',
+       core:'The key prop insight: without keys, React re-renders every list item when one is inserted at the front. With keys, React matches items by identity and only moves/creates what changed. This is why missing keys cause performance bugs in lists.'},
+    ],
+    puzzle:{q:'Why does React require key props on list items?',opts:['Keys make items draggable','Keys let React match items by identity across renders, avoiding unnecessary re-creation','Keys improve CSS styling','Keys are required by JavaScript'],ans:1}
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// LOCALSTORAGE STATE
+// ═══════════════════════════════════════════════════════════════
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem('cct') || '{}'); } catch { return {}; }
+}
+function saveState(s) { try { localStorage.setItem('cct', JSON.stringify(s)); } catch {} }
+function getState() {
+  const s = loadState();
+  if (!s.branches) s.branches = {};
+  return s;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BRANCH TRAIL ENGINE
+// ═══════════════════════════════════════════════════════════════
+
+let branchIdx = -1, branchPos = 0, branchOpen = false, puzzleOpen = false;
+
+function openBranch(insightIdx) {
+  branchIdx = insightIdx; branchPos = 0; branchOpen = true;
+  document.getElementById('branch-overlay').style.display = 'flex';
+  renderBranchNode();
+}
+
+function closeBranch() {
+  document.getElementById('branch-overlay').style.display = 'none';
+  branchOpen = false; branchIdx = -1;
+}
+
+function renderBranchNode() {
+  const b = B[branchIdx], node = b.trail[branchPos], isLast = branchPos === b.trail.length - 1;
+  // Mini trail map
+  document.getElementById('branch-track').innerHTML = b.trail.map((n,i) =>
+    (i > 0 ? `<div class="b-seg${i <= branchPos ? ' v' : ''}"></div>` : '') +
+    `<div class="b-dot${branchPos >= i ? ' v' : ''}${branchPos === i ? ' a' : ''}"></div>`
+  ).join('');
+  // Branch card
+  document.getElementById('branch-card').innerHTML = `
+    <div class="branch-card-hdr">
+      <span class="branch-lv">LEVEL ${branchPos+1} OF ${b.trail.length} &mdash; ${esc(node.level).toUpperCase()}</span>
+    </div>
+    <div class="branch-card-body">
+      <div class="branch-card-title">${esc(node.title)}</div>
+      <div class="branch-card-desc">${esc(node.desc)}</div>
+      <div class="branch-card-core">${esc(node.core)}</div>
+    </div>
+    <div class="branch-card-ftr">
+      ${branchPos > 0 ? `<button class="btn-b btn-b-prev" onclick="branchNav(-1)">&#x2190; Back</button>` : ''}
+      ${!isLast ? `<button class="btn-b btn-b-next" onclick="branchNav(1)">Deeper &#x2192;</button>` : ''}
+      ${isLast ? `<button class="btn-b btn-b-gate" onclick="completeBranch()">&#x25B6; Reach the Gate</button>` : ''}
+    </div>`;
+}
+
+function branchNav(dir) {
+  const b = B[branchIdx];
+  branchPos = Math.max(0, Math.min(b.trail.length - 1, branchPos + dir));
+  renderBranchNode();
+}
+
+function completeBranch() {
+  const s = getState();
+  if (!s.branches[branchIdx]) s.branches[branchIdx] = {};
+  s.branches[branchIdx].explored = true;
+  saveState(s);
+  branchOpen = false;
+  puzzleOpen = true;
+  showPuzzle();
+}
+
+function showPuzzle() {
+  const p = B[branchIdx].puzzle;
+  document.getElementById('puzzle-q').textContent = p.q;
+  document.getElementById('puzzle-opts').innerHTML = p.opts.map((o, i) =>
+    `<button class="puzzle-opt" onclick="checkAns(${i})">${String.fromCharCode(65+i)}) ${esc(o)}</button>`
+  ).join('');
+  document.getElementById('puzzle-result').textContent = '';
+  document.getElementById('puzzle-return').style.display = 'none';
+  document.getElementById('puzzle-retry').style.display = 'none';
+  document.getElementById('puzzle-overlay').style.display = 'flex';
+}
+
+function checkAns(idx) {
+  const p = B[branchIdx].puzzle;
+  document.querySelectorAll('.puzzle-opt').forEach(o => o.style.pointerEvents = 'none');
+  if (idx === p.ans) {
+    document.querySelectorAll('.puzzle-opt')[idx].classList.add('correct');
+    document.getElementById('puzzle-result').innerHTML = '<span style="color:var(--green)">&#x2713; Correct! The trail gate opens.</span>';
+    document.getElementById('puzzle-return').style.display = 'inline-block';
+    const s = getState();
+    if (!s.branches[branchIdx]) s.branches[branchIdx] = {};
+    s.branches[branchIdx].solved = true;
+    saveState(s);
+    refreshBranchBtn();
+  } else {
+    document.querySelectorAll('.puzzle-opt')[idx].classList.add('wrong');
+    document.querySelectorAll('.puzzle-opt')[p.ans].classList.add('correct');
+    document.getElementById('puzzle-result').innerHTML = '<span style="color:var(--rose)">&#x2717; Not quite. Review the branch and try again.</span>';
+    document.getElementById('puzzle-retry').style.display = 'inline-block';
+  }
+}
+
+function retryPuzzle() {
+  document.getElementById('puzzle-overlay').style.display = 'none';
+  puzzleOpen = false; branchOpen = true; branchPos = 0;
+  document.getElementById('branch-overlay').style.display = 'flex';
+  renderBranchNode();
+}
+
+function returnToTrail() {
+  document.getElementById('puzzle-overlay').style.display = 'none';
+  puzzleOpen = false;
+}
+
+function refreshBranchBtn() {
+  const btn = document.querySelector('.branch-btn');
+  if (!btn) return;
+  const solved = (getState().branches[cur] || {}).solved;
+  btn.className = 'branch-btn' + (solved ? ' solved' : '');
+  btn.textContent = solved ? '\u2713 Branch Solved' : '\u21B5 Dive Deeper';
+}
+
 // ═══════════════════════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════════════════════
@@ -455,8 +784,9 @@ function startTrail() {
   started = true;
   buildTrailMap();
   buildChapterNav();
-  skipInterstitial = true; // don't show interstitial for chapter 0
-  showInsight(0);
+  const saved = loadState().progress || 0;
+  skipInterstitial = true;
+  showInsight(saved);
   setTimeout(() => document.getElementById('title-screen').style.display='none', 800);
 }
 
@@ -502,9 +832,20 @@ function showInsight(idx) {
   const ins = I[idx];
   const ch = CH[ins.ch];
 
+  // Save progress
+  const st = getState(); st.progress = idx; saveState(st);
+
   // Card
   const card = document.getElementById('card');
   card.className = 'card entering';
+  const fUrl = ins.f ? fileUrl(ins.f) : null;
+  const fileHtml = ins.f
+    ? `<a href="${fUrl}" target="_blank" rel="noopener">${esc(ins.f)}</a>`
+    : '';
+  const branchSolved = (st.branches[idx] || {}).solved;
+  const branchHtml = B[idx]
+    ? `<button class="branch-btn${branchSolved ? ' solved' : ''}" onclick="openBranch(${idx})">${branchSolved ? '\u2713 Branch Solved' : '\u21B5 Dive Deeper'}</button>`
+    : '';
   card.innerHTML = `
     <div class="card-header">
       <span class="card-number">#${idx+1} / ${I.length}</span>
@@ -516,8 +857,9 @@ function showInsight(idx) {
       ${ins.l ? `<div class="card-learn">${ins.l}</div>` : ''}
     </div>
     <div class="card-footer">
-      <span class="card-file">${esc(ins.f)}</span>
+      <span class="card-file">${fileHtml}</span>
       ${ins.v ? `<span class="card-value">${esc(ins.v)}</span>` : ''}
+      ${branchHtml}
       <span class="card-tag">${ch.id}</span>
     </div>`;
   requestAnimationFrame(() => requestAnimationFrame(() => card.classList.remove('entering')));
@@ -601,6 +943,13 @@ function esc(s) { const d=document.createElement('div'); d.textContent=s; return
 // Keyboard
 document.addEventListener('keydown', e => {
   if (searchOpen) { if (e.key==='Escape'){toggleSearch();e.preventDefault()} return; }
+  if (puzzleOpen) { if (e.key==='Escape'){returnToTrail();e.preventDefault()} return; }
+  if (branchOpen) {
+    if (e.key==='Escape'){closeBranch();e.preventDefault()}
+    else if (e.key==='ArrowRight'||e.key==='l') branchNav(1);
+    else if (e.key==='ArrowLeft'||e.key==='h') branchNav(-1);
+    return;
+  }
   if (document.getElementById('interstitial').classList.contains('show')) return;
   if (!started) { if (e.key==='Enter'){startTrail();e.preventDefault()} return; }
   switch(e.key) {
