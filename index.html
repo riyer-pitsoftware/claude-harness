@@ -45,16 +45,21 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 #topbar .chapter-name{font-size:18px;color:var(--purple);text-align:center;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Trail map */
-#trail-map{background:var(--bg);border-bottom:1px solid #1a1a2e;padding:10px 0;flex-shrink:0;overflow:hidden;position:relative;height:40px}
-#trail-map .track{display:flex;align-items:center;gap:0;padding:0 24px;transition:transform .4s ease-out;white-space:nowrap}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--dim2);flex-shrink:0;cursor:pointer;transition:all .15s ease-out}
+#trail-map{background:var(--bg);border-bottom:1px solid #1a1a2e;padding:8px 0 0;flex-shrink:0;overflow:hidden;position:relative;height:46px}
+#trail-map .track{display:flex;align-items:center;gap:0;padding:0 24px;transition:transform .4s ease-out;white-space:nowrap;margin-top:2px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim2);flex-shrink:0;cursor:pointer;transition:all .15s ease-out;position:relative}
 .dot.v{background:var(--green);box-shadow:0 0 4px rgba(0,255,65,.4)}
 .dot.a{background:var(--amber);box-shadow:0 0 10px rgba(255,176,0,.7);transform:scale(1.8)}
 .dot.ch{width:10px;height:10px;background:var(--purple);border-radius:2px}
 .dot.ch.v{box-shadow:0 0 6px rgba(124,58,237,.5)}
 .seg{width:6px;height:2px;background:var(--dim2);flex-shrink:0}
 .seg.v{background:var(--green)}
-#wagon{position:absolute;top:0;font-size:16px;transition:left .4s ease-out;pointer-events:none;filter:drop-shadow(0 0 4px rgba(255,176,0,.5))}
+/* Branch trail indicators — tick below dots that have branches */
+.dot.has-branch::after{content:'';position:absolute;top:calc(100% + 2px);left:50%;transform:translateX(-50%);width:1px;height:8px;background:rgba(0,255,255,.35);border-radius:1px;transition:background .2s}
+.dot.has-branch.v::after{background:rgba(0,255,255,.5)}
+.dot.has-branch.branch-solved::after{background:var(--green);box-shadow:0 0 4px rgba(0,255,65,.5)}
+.dot.a.has-branch::after{top:calc(100% + 4px)}
+#wagon{position:absolute;top:2px;font-size:16px;transition:left .4s ease-out;pointer-events:none;filter:drop-shadow(0 0 4px rgba(255,176,0,.5))}
 
 /* Content area */
 #content{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:20px 16px;gap:0}
@@ -368,6 +373,182 @@ const B = {
     puzzle:{q:'Why do companion generators use PRNGs seeded with user IDs rather than true random numbers?',opts:['PRNGs are more secure','PRNGs produce reproducible sequences — the same seed always gives the same companion','True random is too slow','PRNGs use less memory'],ans:1}
   },
 
+  // Ch 5 — Companions: 18 Species of ASCII Pet
+  72: {
+    trail:[
+      {title:'ASCII Art & Unicode Sprites',level:'Sourced Tech',
+       desc:'Each Claude Code companion is drawn in ASCII/Unicode characters — the duck, cactus, robot, axolotl, and 14 others are defined as multi-line string arrays in sprites.ts. One character change, like the duck tail waggle "~", creates the illusion of animation.',
+       core:'Why ASCII sprites: they\'re zero-dependency, universally renderable, and version-controllable as plain text. A pixel image requires an image renderer; an ASCII sprite is just a string that any terminal can display without special support.'},
+      {title:'Seeded Pseudorandom Generation',level:'How It Works',
+       desc:'Each user gets a deterministic companion based on their user ID. A seeded PRNG maps the ID to species, rarity tier, color, and stats. The same ID always produces the same companion across sessions and reinstalls.',
+       core:'Seeded generation enables reproducibility without a database: you don\'t store "user X has a shiny dragon." You store the user ID and regenerate the companion on demand. This eliminates an entire class of sync and storage problems.'},
+      {title:'djb2 Hash Algorithm',level:'Core Tech',
+       desc:'The seed is derived via djb2: hash = hash * 33 XOR charCode, iterated over the user ID string. It\'s non-cryptographic but has excellent avalanche properties — small input changes produce large hash changes.',
+       core:'djb2 multiplier insight: 33 = 2⁵ + 1, so "hash * 33" compiles to a single shift-and-add on most architectures. Combined with XOR, it distributes bits well across all output positions. Created by Daniel J. Bernstein in the 1990s.'},
+    ],
+    puzzle:{q:'Why does seeded companion generation eliminate the need to store companion data in a database?',opts:['It\'s faster to compute','The same seed always reproduces the same companion deterministically','It uses less memory at runtime','Seeds are more secure than database IDs'],ans:1}
+  },
+
+  // Ch 6 — Vim Outpost: Full State Machine with Exhaustive Types
+  84: {
+    trail:[
+      {title:'Modal Text Editing (Vim)',level:'Sourced Tech',
+       desc:'Vim uses modal editing: the same keys do different things in NORMAL, INSERT, VISUAL, and COMMAND modes. Claude Code implements a complete vim state machine — modes, registers, dot-repeat, and text objects — inside a chat CLI.',
+       core:'Why modal: in modal editing, every key is a command (no Ctrl needed). "dw" deletes a word; "ciw" changes inside a word. The mode acts as a namespace — the same physical key maps to completely different operations depending on context.'},
+      {title:'Finite State Machines (FSMs)',level:'How It Works',
+       desc:'Vim\'s mode system is a classic FSM: states (NORMAL, INSERT…), transitions (ESC, i, v), and actions (insert char, delete word). TypeScript exhaustive union types ensure every state transition is handled — missing a case is a compile error.',
+       core:'TypeScript exhaustive switch: by typing the state as a discriminated union and adding a never-check default case, the compiler proves at compile time that all states are handled. Add a new mode without updating the switch → type error.'},
+      {title:'Mealy & Moore State Machines',level:'Core Tech',
+       desc:'FSMs come in two flavors: Moore machines (output depends only on current state) and Mealy machines (output depends on state + input). Vim is a Mealy machine — "d" in NORMAL mode is only meaningful when followed by a motion like "w" or "j".',
+       core:'Vim\'s operator-pending state: after pressing "d", vim enters a special sub-state waiting for a motion. This is a Mealy transition — the output (delete action) is determined by the combination of "d" (operator) + "w" (motion), not either alone.'},
+    ],
+    puzzle:{q:'What TypeScript pattern proves at compile time that all FSM states are handled in a switch statement?',opts:['Optional chaining','Exhaustive union types with a never-typed default case','Generics and type constraints','Abstract classes'],ans:1}
+  },
+
+  // Ch 7 — Voice: 16kHz Mono 16-bit PCM
+  93: {
+    trail:[
+      {title:'PCM Audio (Pulse Code Modulation)',level:'Sourced Tech',
+       desc:'Voice recording uses 16kHz mono 16-bit PCM — the raw digital audio format. PCM works by sampling the audio waveform at regular intervals and quantizing each sample to an integer value. No compression, no codec — just raw numbers.',
+       core:'Why these parameters: 16kHz covers the 0–8kHz range relevant for speech (Nyquist theorem: sample rate must be 2× the highest frequency). 16-bit provides 65,536 amplitude levels — enough dynamic range for speech without file size bloat.'},
+      {title:'Nyquist-Shannon Sampling Theorem',level:'How It Works',
+       desc:'To perfectly reconstruct a signal, you must sample it at least twice per cycle of the highest frequency present. Human speech tops out around 8kHz, so 16kHz sampling is the theoretical minimum for perfect speech reconstruction.',
+       core:'What happens below Nyquist: frequencies above half the sample rate "alias" — they appear as lower-frequency artifacts. A 9kHz tone sampled at 16kHz shows up as a 7kHz artifact. This is why phone calls sound slightly artificial — they\'re band-limited to 8kHz.'},
+      {title:'Discrete Fourier Transform (DFT)',level:'Core Tech',
+       desc:'Audio processing — including silence detection — works in the frequency domain. The DFT converts time-domain PCM samples into frequency components. The Fast Fourier Transform (FFT) does this in O(n log n) instead of O(n²).',
+       core:'Silence detection via FFT: instead of checking if samples are near zero (which misses background hiss), you compute the FFT and check if energy is concentrated in the 50–300Hz range (speech fundamentals). Silence means flat energy across all frequencies.'},
+    ],
+    puzzle:{q:'Why must audio be sampled at least twice the highest frequency you want to capture?',opts:['To reduce file size','The Nyquist theorem: lower rates cause aliasing, making high frequencies appear as false low-frequency artifacts','For stereo compatibility','To match telephone standards'],ans:1}
+  },
+
+  // Ch 8 — Memory: Memory Extraction via Forked Agent
+  101: {
+    trail:[
+      {title:'LLM Context Windows & Memory',level:'Sourced Tech',
+       desc:'Claude Code extracts durable memories using a forked agent that runs at the end of each query loop. It reads the conversation, identifies key facts, and writes structured memories to disk — bridging the gap between ephemeral context and persistent knowledge.',
+       core:'The context window problem: LLMs have no persistent memory by default. Every new conversation starts blank. Explicit memory extraction (reading the conversation and writing key facts to files) simulates long-term memory without fine-tuning.'},
+      {title:'Prompt Caching & KV Cache Reuse',level:'How It Works',
+       desc:'The forked agent reuses the parent\'s prompt cache — the same 100K+ token conversation is already cached in the model\'s KV cache, so the fork doesn\'t pay to re-read it. The fork only pays for its own short output tokens.',
+       core:'KV cache economics: input tokens are expensive to process (O(n²) attention). Once processed, the KV cache holds the attention keys and values. A fork that reuses the parent\'s cache pays near-zero for re-reading a long conversation.'},
+      {title:'Transformer Attention & KV Cache',level:'Core Tech',
+       desc:'Transformers compute attention by multiplying query (Q), key (K), and value (V) matrices: Attention = softmax(QKᵀ/√d)V. The KV cache stores K and V for each previous token so they aren\'t recomputed for every new token.',
+       core:'Why KV caching is transformative: without it, generating each new token requires O(n²) computation over all previous tokens. With the cache, new token generation is O(n) — the new token\'s Q attends to cached K/V pairs. This is what makes long contexts tractable.'},
+    ],
+    puzzle:{q:'Why does a forked agent reusing the parent\'s KV cache pay near-zero cost to re-read a long conversation?',opts:['The conversation is compressed first','The KV cache stores pre-computed attention keys and values, avoiding O(n²) recomputation','Forked agents run on separate hardware','The parent clears its cache before forking'],ans:1}
+  },
+
+  // Ch 9 — Agents: Tmux Pane Spawning
+  111: {
+    trail:[
+      {title:'tmux (Terminal Multiplexer)',level:'Sourced Tech',
+       desc:'Claude Code\'s swarm system launches each agent into a separate tmux pane. tmux is a terminal multiplexer that manages multiple terminal sessions within one window — panes, windows, and sessions — all persistent even when SSH disconnects.',
+       core:'Why tmux for agents: each agent needs its own stdin/stdout. tmux provides isolated pseudo-terminal (pty) pairs for each pane, color-coded and independently scrollable. The orchestrator sends commands via tmux send-keys and reads output via tmux capture-pane.'},
+      {title:'Unix Process Model & PTYs',level:'How It Works',
+       desc:'Each tmux pane is backed by a pseudo-terminal (PTY) — a pair of file descriptors that simulate a real terminal. The master side is controlled by tmux; the slave side is the terminal that the shell and agent see.',
+       core:'PTY mechanics: the master/slave pair is created by posix_openpt(). tmux writes to the master to send keystrokes; the shell reads from the slave. Terminal control codes (resize, color) flow through the PTY pair — making the agent think it\'s in a real terminal.'},
+      {title:'Inter-Process Communication (IPC)',level:'Core Tech',
+       desc:'Agents communicate through IPC mechanisms: pipes (stdin/stdout), tmux shared memory, and filesystem-based message passing (scratchpad files). Each mechanism has different latency and bandwidth characteristics.',
+       core:'IPC hierarchy: pipes are fastest (kernel buffer, zero-copy) but one-directional. Sockets add bidirectional full-duplex. Files are slowest but persistent and inspectable. Claude Code uses files for agent scratchpads — slow but debuggable and crash-safe.'},
+    ],
+    puzzle:{q:'What makes a PTY (pseudo-terminal) different from a regular Unix pipe?',opts:['PTYs support color codes','PTYs simulate a full terminal including control codes, making the child process think it\'s in a real terminal','PTYs are faster than pipes','PTYs work over the network'],ans:1}
+  },
+
+  // Ch 10 — Security: Multi-Layer Permission Model
+  121: {
+    trail:[
+      {title:'Defense in Depth (Security)',level:'Sourced Tech',
+       desc:'Claude Code\'s permission model has four layers: default (prompt every time), plan-mode (pre-reviewed), auto-accept, and bypass. Plus tool-specific overrides and MCP server trust levels. No single gate controls all access.',
+       core:'Why multiple layers: defense in depth means no single failure grants full access. An attacker bypassing auto-accept still hits the underlying tool permission. An MCP server with low trust still can\'t run bash commands. Each layer independently limits blast radius.'},
+      {title:'Principle of Least Privilege (PoLP)',level:'How It Works',
+       desc:'Each agent, tool, and MCP server gets only the permissions it needs. Sub-agents can\'t spawn more agents. Read-only tools can\'t write files. This limits the damage from a compromised or misbehaving component.',
+       core:'PoLP in practice: Claude Code\'s coordinator can spawn workers, but workers can\'t spawn workers (prevents recursive agent bombs). The read tool gets read permissions; the bash tool gets execute but with command filtering. Privilege is role-specific, not global.'},
+      {title:'Mandatory Access Control (MAC) & Bell-LaPadula',level:'Core Tech',
+       desc:'Formal security models like Bell-LaPadula define rules for information flow: "no read up, no write down" prevents confidential data from leaking to lower-trust processes. Modern sandboxing (seccomp, AppArmor) implements MAC in the kernel.',
+       core:'Bell-LaPadula vs. Biba: Bell-LaPadula protects confidentiality (prevents reading high-security data from low-trust code). Biba protects integrity (prevents low-trust code from writing to high-integrity targets). Real systems need both — seccomp implements a Biba-like integrity model.'},
+    ],
+    puzzle:{q:'What does the Principle of Least Privilege prevent in the context of sub-agents?',opts:['Network access','Recursive agent spawning — workers can\'t create more workers, limiting blast radius','File system access','High memory usage'],ans:1}
+  },
+
+  // Ch 11 — Rendering: Unicode Bidi Algorithm
+  131: {
+    trail:[
+      {title:'Unicode Bidirectional Text',level:'Sourced Tech',
+       desc:'Claude Code manually implements the Unicode Bidirectional Algorithm (UBA) to handle right-to-left languages (Arabic, Hebrew) in terminal output. Windows Terminal and VSCode handle bidi differently — Claude Code normalizes both.',
+       core:'The bidi problem: "Hello مرحبا world" mixes LTR and RTL scripts. The display order must reverse the RTL portion while keeping the LTR portions forward. Without UBA, Arabic and Hebrew text appears backwards or scrambled in terminal output.'},
+      {title:'Unicode Standard & Code Points',level:'How It Works',
+       desc:'Unicode assigns each character a code point (U+0041 = "A"). The standard also assigns each character a "bidi class" — L (left-to-right), R (right-to-left), AN (Arabic number), EN (European number), etc. The UBA uses these classes to determine display order.',
+       core:'Unicode is not UTF-8: Unicode is the character set (code points). UTF-8, UTF-16, UTF-32 are encodings that represent those code points as bytes. A single Unicode code point can be 1–4 bytes in UTF-8. The bidi algorithm works on code points, not bytes.'},
+      {title:'UTF-16 & Surrogate Pairs',level:'Core Tech',
+       desc:'JavaScript strings are UTF-16. Code points above U+FFFF (like emoji) require two 16-bit "surrogate" code units: a high surrogate (U+D800–UDBFF) and low surrogate (U+DC00–UDFFF). String.length counts surrogates, not characters.',
+       core:'The surrogate pair trap: "😀".length === 2 in JavaScript, not 1. Code that iterates by index instead of using for...of or Array.from will split emoji in half, corrupting them. The terminal renderer must account for this when computing cursor positions.'},
+    ],
+    puzzle:{q:'Why does "😀".length === 2 in JavaScript instead of 1?',opts:['Emoji are always 2 characters wide','JavaScript strings are UTF-16; code points above U+FFFF use two surrogate code units','Emoji have extra metadata','JavaScript counts bytes, not characters'],ans:1}
+  },
+
+  // Ch 12 — Models: 200K Default Context Window
+  141: {
+    trail:[
+      {title:'Transformer Context Windows',level:'Sourced Tech',
+       desc:'All current Claude models default to a 200,000-token context window. Claude Code manages this budget explicitly: it tracks input tokens, estimates image costs (1,600 tokens each), and compacts conversations when the window fills.',
+       core:'Why context length matters: every token in the context is attended to by every subsequent token. A 200K context means the model can "see" an entire large codebase at once. But it also means 200K × 200K attention operations per forward pass — the cost scales quadratically.'},
+      {title:'Self-Attention Mechanism',level:'How It Works',
+       desc:'Transformers use self-attention: each token attends to all previous tokens via Q×K dot products, then aggregates V values weighted by attention scores. This allows any token to directly reference any earlier token — the key to long-range understanding.',
+       core:'Attention is O(n²): for n tokens, you compute n² dot products. At 200K tokens, that\'s 40 billion dot products per attention head. Modern hardware parallelizes this with Flash Attention — computing attention in tiles that fit in SRAM to avoid memory bandwidth bottlenecks.'},
+      {title:'Flash Attention & Memory Bandwidth',level:'Core Tech',
+       desc:'Flash Attention (Dao et al., 2022) reformulates the attention computation to minimize HBM (high-bandwidth memory) reads/writes. Instead of computing the full n×n attention matrix (which doesn\'t fit in SRAM), it tiles the computation.',
+       core:'The memory wall: GPUs have fast SRAM (compute buffer) and slow HBM (main memory). Naive attention writes a 200K×200K float matrix to HBM, then reads it back. Flash Attention keeps intermediate results in SRAM, cutting HBM traffic by ~10×. This is why 200K context is practical.'},
+    ],
+    puzzle:{q:'Why does self-attention scale as O(n²) with context length n?',opts:['Transformers use n layers','Each of the n tokens must attend to all n previous tokens, producing n² dot products','Memory allocation is quadratic','The vocabulary is size n'],ans:1}
+  },
+
+  // Ch 13 — Services: 60+ Dynamic Tips with A/B Testing
+  151: {
+    trail:[
+      {title:'Feature Flags & A/B Testing',level:'Sourced Tech',
+       desc:'Claude Code uses GrowthBook for feature flags and A/B testing. Tips have display conditions (startup count, platform, model, IDE, feature gate) and are served fresh from a remote config with a stale-while-revalidate cache pattern.',
+       core:'Why feature flags in a CLI: the same binary ships to everyone, but not every user should see every feature. Flags let you roll out to 1% → 10% → 100% while monitoring for problems. A/B testing tips measures which ones actually change user behavior.'},
+      {title:'GrowthBook & Remote Config',level:'How It Works',
+       desc:'GrowthBook is an open-source feature flagging platform. It delivers a JSON payload with experiment assignments based on user attributes. Claude Code uses a _CACHED_MAY_BE_STALE suffix on flag reads — always returning immediately from cache.',
+       core:'Stale-while-revalidate: return the cached value instantly (no latency), then refresh in the background. The next call gets the fresh value. This pattern prioritizes responsiveness over freshness — acceptable when feature flags change infrequently.'},
+      {title:'Multi-Armed Bandit Algorithms',level:'Core Tech',
+       desc:'Traditional A/B testing assigns fixed percentages to variants and waits for statistical significance. Multi-armed bandit algorithms (epsilon-greedy, Thompson Sampling, UCB) dynamically shift traffic to winning variants as evidence accumulates.',
+       core:'Thompson Sampling insight: maintain a Beta distribution over each variant\'s success probability. Sample from each distribution; show the variant with the highest sample. High-uncertainty variants get explored; high-confidence winners get exploited. Exploration-exploitation in one algorithm.'},
+    ],
+    puzzle:{q:'What does the stale-while-revalidate caching pattern prioritize?',opts:['Data freshness over speed','Responsiveness — return cached data immediately, refresh in the background','Security over performance','Consistency over availability'],ans:1}
+  },
+
+  // Ch 15 — Components: 200+ React Components for Terminal
+  171: {
+    trail:[
+      {title:'Design Systems',level:'Sourced Tech',
+       desc:'Claude Code\'s 200+ terminal components follow a design system — a shared library of reusable components (Dialog, FuzzyPicker, Tabs, ProgressBar) with consistent visual language. New features get the design system for free.',
+       core:'Why a design system: without one, 200 engineers add 200 slightly different dialogs, spacing values, and color tokens. A design system encodes decisions once (spacing scale, color palette, interaction patterns) and enforces them everywhere through shared components.'},
+      {title:'Atomic Design Methodology',level:'How It Works',
+       desc:'Brad Frost\'s Atomic Design breaks UIs into atoms (Button, Icon), molecules (SearchField = Input + Button), organisms (PermissionDialog = Modal + SearchField + ActionBar), templates, and pages. Claude Code\'s component hierarchy follows this pattern.',
+       core:'Atomic design\'s composability: a FuzzyPicker atom appears in command palette, file open, settings, and session resume — all sharing the same keyboard behavior, styling, and accessibility. Building bigger components from smaller primitives prevents duplication.'},
+      {title:'Component Composition vs. Inheritance',level:'Core Tech',
+       desc:'React deliberately omits classical inheritance for UI components. Instead, composition: a Dialog wraps arbitrary children via props.children. This is the "favor composition over inheritance" principle from GoF Design Patterns applied to UI.',
+       core:'Why composition wins: inheritance creates rigid hierarchies (PermissionDialog extends Dialog extends Modal extends…). Composition is flexible — wrap any component in any behavior. React\'s higher-order components and hooks are both composition patterns that avoid inheritance entirely.'},
+    ],
+    puzzle:{q:'What does "favor composition over inheritance" mean for React components?',opts:['Components should never extend other components','Wrap components via props.children instead of subclassing, keeping hierarchies flexible','All components must be pure functions','State should always be lifted to the root'],ans:1}
+  },
+
+  // Ch 16 — Whimsy: Rind the Cactus Companion
+  181: {
+    trail:[
+      {title:'Emotional Design',level:'Sourced Tech',
+       desc:'Rind the cactus companion sits beside the input box and occasionally comments in a speech bubble. It\'s a deliberate emotional design choice — making a developer tool feel like a collaboration rather than a utility.',
+       core:'Emotional design (Don Norman): products operate on three cognitive levels — visceral (how it looks), behavioral (how it works), and reflective (how it makes you feel). A companion like Rind operates at the reflective level, creating a sense of relationship and personality.'},
+      {title:'Procedural Sprite Composition',level:'How It Works',
+       desc:'Each companion species is defined as a multi-line ASCII sprite array. Rarity tiers (Common, Uncommon, Rare, Legendary) are assigned by probability gates (60%, 25%, 14%, 1%). Stats are derived from the rarity tier plus seeded randomness.',
+       core:'Why probabilities matter: 1% Legendary × 1% shiny = 0.01% chance of a shiny Legendary. Among 10,000 users, statistically only one has one. Extreme rarity creates social currency — "I have a shiny Legendary" becomes a story worth telling.'},
+      {title:'Game Design & Psychological Rewards',level:'Core Tech',
+       desc:'Rarity systems borrow from game design: variable-ratio reinforcement (the most powerful psychological reward schedule), collectible mechanics, and social signaling. The shiny Legendary is a Skinner box applied to developer tooling.',
+       core:'Variable-ratio reinforcement: rewarding behavior after an unpredictable number of responses creates the highest rate of behavior and greatest resistance to extinction (B.F. Skinner). It\'s why slot machines and loot boxes are compelling — and why a rare companion creates delight rather than just information.'},
+    ],
+    puzzle:{q:'What psychological reward schedule makes rare companions (and loot boxes) particularly compelling?',opts:['Fixed-ratio reinforcement','Variable-ratio reinforcement — rewards after an unpredictable number of attempts create the strongest behavioral response','Continuous reinforcement','Negative reinforcement'],ans:1}
+  },
+
   // Ch 15 — Components: 200+ React Components
   168: {
     trail:[
@@ -502,10 +683,14 @@ function returnToTrail() {
 
 function refreshBranchBtn() {
   const btn = document.querySelector('.branch-btn');
-  if (!btn) return;
   const solved = (getState().branches[cur] || {}).solved;
-  btn.className = 'branch-btn' + (solved ? ' solved' : '');
-  btn.textContent = solved ? '\u2713 Branch Solved' : '\u21B5 Dive Deeper';
+  if (btn) {
+    btn.className = 'branch-btn' + (solved ? ' solved' : '');
+    btn.textContent = solved ? '\u2713 Branch Solved' : '\u21B5 Dive Deeper';
+  }
+  // Update trail map dot
+  const dot = document.querySelector(`.dot[data-i="${cur}"]`);
+  if (dot && B[cur]) dot.classList.toggle('branch-solved', !!solved);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -792,14 +977,20 @@ function startTrail() {
 
 function buildTrailMap() {
   const t = document.getElementById('track');
+  const st = getState();
   t.innerHTML = '';
   I.forEach((ins, i) => {
     if (i > 0) { const s = document.createElement('div'); s.className='seg'; s.dataset.i=i; t.appendChild(s); }
     const d = document.createElement('div');
-    d.className = 'dot' + (chStarts.some(c=>c.idx===i) ? ' ch' : '');
+    let cls = 'dot' + (chStarts.some(c=>c.idx===i) ? ' ch' : '');
+    if (B[i]) {
+      cls += ' has-branch';
+      if ((st.branches[i]||{}).solved) cls += ' branch-solved';
+    }
+    d.className = cls;
     d.dataset.i = i;
     d.addEventListener('click', () => { skipInterstitial=true; goTo(i); });
-    d.title = `#${i+1}: ${ins.t}`;
+    d.title = B[i] ? `#${i+1}: ${ins.t} [branch]` : `#${i+1}: ${ins.t}`;
     t.appendChild(d);
   });
 }
